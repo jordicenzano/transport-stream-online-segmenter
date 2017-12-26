@@ -1,0 +1,34 @@
+{
+  "name": "transport-stream-online-segmenter",
+  "version": "1.0.0",
+  "description": "Creates HLS chunklist inside the browser from a transport stream file",
+  "main": "index.js",
+  "dependencies": {
+    "binary-parser": "^1.3.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babelify": "^8.0.0",
+    "chai": "^4.0.2",
+    "grunt": "^1.0.1",
+    "grunt-browserify": "^5.2.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-string-replace": "^1.3.1",
+    "mocha": "^3.4.2",
+    "nyc": "^11.1.0"
+  },
+  "scripts": {
+    "test": "node node_modules/mocha/bin/mocha"
+  },
+  "keywords": [
+    "mpeg",
+    "transport-stream",
+    "video",
+    "segmenter",
+    "hls",
+    "chunk",
+    "javascript"
+  ],
+  "author": "Jordi Cenzano",
+  "license": "GPL-3.0"
+}
