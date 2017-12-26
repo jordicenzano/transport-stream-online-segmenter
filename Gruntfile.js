@@ -11,14 +11,14 @@ module.exports = function (grunt) {
                     // if the source file has an extension of es6 then
                     // we change the name of the source file accordingly.
                     // The result file's extension is always .js
-                    "./dist/js/chunklistGeneratorBrowser.js": ["./src/chunklistGeneratorBrowser.js"]
+                    "./docs/js/chunklistGeneratorBrowser.js": ["./src/chunklistGeneratorBrowser.js"]
                 }
             }
         },
         'string-replace': {
             dist: {
                 files: {
-                    './dist/js/chunklistGeneratorBrowser.js': './dist/js/chunklistGeneratorBrowser.js'
+                    './docs/js/chunklistGeneratorBrowser.js': './docs/js/chunklistGeneratorBrowser.js'
                 },
                 options: {
                     replacements: [{

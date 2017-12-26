@@ -6,7 +6,7 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 
 # Usage in the browser
 
-* Click here [TODO](https://www.google.com)
+* Click here [online-segmenter](https://TODO)
 * Select the desired target duration and select a .ts file from your local computer (*)
 * Copy the resulting chunklist data in a file in the *same directory* where your .ts file is, for example `chunklist.m3u8`
 * Use any HLS player to play the resulting manifest file `chunklist.m3u8`
