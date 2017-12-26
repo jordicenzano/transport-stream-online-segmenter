@@ -19,6 +19,10 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 TODO
 ```
 
+#TODO
+* Add cli option (very easy)
+* Add option to read from URL (very easy)
+
 (*) If you do not have any ts file you can generate one by using `ffmpeg`:
 ```
 ffmpeg -f lavfi -re -i testsrc=duration=10:size=320x200:rate=30 \
