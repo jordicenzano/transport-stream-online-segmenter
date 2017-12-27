@@ -146,9 +146,9 @@ function parseURL(url, callback) {
     let fileSize   = -1;
     let offset     = 0;
 
-    let prot = http;
-    if (url.toLowerCase().search("https") === 0)
-        prot = https;
+    let prot = https;
+    if (url.toLowerCase().search("http:") === 0)
+        prot = http;
 
     return prot.get(url, function (response) {
         if (fileSize < 0)
