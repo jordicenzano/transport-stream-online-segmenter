@@ -1,3 +1,4 @@
 node_modules/
 .*
 !.gitignore
+/test/*.m3u8
