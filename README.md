@@ -17,7 +17,6 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 * Use the following syntax(*):
 ```
 ./transport-stream-segmenter-cli.js /your_path/input.ts /your_path/chunklist.m3u8
-
 ```
 You can execute `./transport-stream-segmenter-cli.js` (without arguments) to get help about accepted parameters
 
