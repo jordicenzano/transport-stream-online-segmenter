@@ -56,13 +56,26 @@
             <option value = "10">10</option>
         </select>
     </div>
-    <div class="input-group">
+
+    <div class="btn-group" id="input-file-selector">
+        <label class="radio-inline"><input id="input-file-local" type="radio" name="optradio" checked>File</label>
+        <label class="radio-inline"><input id="input-file-url" type="radio" name="optradio">URL (be careful with CORS)</label>
+    </div>
+
+    <!-- Just add simple space -->
+    <div class="col-xs-12" style="height:8px;"></div>
+
+    <div class="input-group" id="input-file">
         <label class="input-group-btn">
             <span class="btn btn-primary">
                 Choose TS file &hellip; <input id="input-ts-file" accept=".ts" type="file" style="display: none;">
             </span>
         </label>
         <input id="input-ts-file-label" type="text" class="form-control" readonly>
+    </div>
+    <div class="form-group" id="input-url" style="display:none;">
+        <input type="text" class="form-control" id="input-ts-url" placeholder="https://myserver.com/path/file.ts">
+        <button type="button" class="btn btn-primary" id="input-file-url-process">Process</button>
     </div>
 </div>
 

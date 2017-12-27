@@ -7,7 +7,7 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 # Usage in the browser
 
 * Click here [online-segmenter](https://jordicenzano.github.io/transport-stream-online-segmenter/)
-* Select the desired target duration and select a .ts file from your local computer (*)
+* Select the desired target duration and select a .ts file from your local computer (*), or put a URL of any ts file (remember should have a proper CORS policy)
 * Copy the resulting chunklist data in a file in the *same directory* where your .ts file is, for example `chunklist.m3u8`
 * Use any HLS player to play the resulting manifest file `chunklist.m3u8`. For instance: [VLC](https://www.videolan.org/vlc/index.html), `Quicktime` or `Safari`
 * (optional) is more "fun" if you put a webserver in front of those files. For instance [node-static](https://github.com/cloudhead/node-static)
@@ -19,10 +19,6 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 ./transport-stream-segmenter-cli.js /your_path/input.ts /your_path/chunklist.m3u8
 ```
 You can execute `./transport-stream-segmenter-cli.js` (without arguments) to get help about accepted parameters
-
-# TODO
-
-* Add option to read from URL (very easy)
 
 (*) If you do not have any ts file you can generate one by using `ffmpeg`:
 ```

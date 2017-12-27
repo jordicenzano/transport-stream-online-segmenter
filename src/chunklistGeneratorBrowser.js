@@ -1,3 +1,5 @@
+const http = require("http");
+const https = require("https");
 const chkGenerator = require('./chunklistGenerator.js');
 
 "use strict";
@@ -12,14 +14,18 @@ function checkFileAPI() {
     }
 }
 
-function chunklistGeneratorBrowser(file, target_duration, final_callback, progress_callback) {
-
-    //Read the local file in the browser
+function chunklistGeneratorBrowser(is_url, source, target_duration, final_callback, progress_callback) {
+    let file_name_url = source.name;
+    let processFunction = parseFile;
+    if (is_url === true) {
+        file_name_url = source;
+        processFunction = parseURL
+    }
 
     //Instantiate class
-    let segmenter = new chkGenerator.chunklistGenerator(file.name, target_duration);
+    let segmenter = new chkGenerator.chunklistGenerator(file_name_url, target_duration);
 
-    parseFile(file, function (err, data_chunk, read, total) {
+    processFunction(source, function (err, data_chunk, read, total) {
         if (err) {
             return final_callback(err, null);
         }
@@ -48,13 +54,35 @@ function chunklistGeneratorBrowser(file, target_duration, final_callback, progre
 }
 
 function onFileSelectHandle(evt) {
-    let file = document.getElementById('input-ts-file').files[0];
+    let is_url = false;
 
-    if (file !== null) {
-        console.log("Reading file!");
+    let source = document.getElementById('input-ts-file').files[0];
 
-        //Show file name
-        document.getElementById('input-ts-file-label').value = file.name;
+    //Show file name
+    if (source !== null)
+        document.getElementById('input-ts-file-label').value = source.name;
+
+    startTSWebProcess(is_url, source);
+}
+
+
+function onURLProcessClick() {
+    let is_url = true;
+    let source = document.getElementById('input-ts-url').value;
+
+    //Remove file value
+    document.getElementById('input-ts-file-label').value = "";
+
+    startTSWebProcess(is_url,source);
+}
+
+function startTSWebProcess(is_url, source) {
+
+    let elemTargetDur = document.getElementById('target_dur_s');
+    let target_dur = elemTargetDur.options[elemTargetDur.selectedIndex].value;
+
+    if (source !== null) {
+        console.log("Reading source!");
 
         let final_callback = function (err, data) {
             if (err) {
@@ -69,12 +97,8 @@ function onFileSelectHandle(evt) {
             showResult('Processed: ' + read.toString() + '/' + total.toString());
         };
 
-        chunklistGeneratorBrowser(file, 4, final_callback, progress_callback);
+        chunklistGeneratorBrowser(is_url, source, target_dur, final_callback, progress_callback);
     }
-}
-
-function showError(msg) {
-    showResult(msg);
 }
 
 //From: https://stackoverflow.com/questions/14438187/javascript-filereader-parsing-long-file-in-chunks
@@ -96,7 +120,6 @@ function parseFile(file, callback) {
             let buff= Buffer.from(evt.target.result);
 
             callback(null, buff, offset, fileSize); // callback for handling read chunk
-
         }
 
         if (offset >= fileSize) {
@@ -119,12 +142,67 @@ function parseFile(file, callback) {
     chunkReaderBlock(offset, chunkSize, file);
 }
 
+function parseURL(url, callback) {
+    let fileSize   = -1;
+    let offset     = 0;
+
+    let prot = http;
+    if (url.toLowerCase().search("https") === 0)
+        prot = https;
+
+    return prot.get(url, function (response) {
+        if (fileSize < 0)
+            fileSize = parseInt(response.headers['content-length']);
+
+        //NO redirects
+        if (response.statusCode >= 300) {
+            let err = new Error("Response status:" + response.statusCode);
+            return callback(err); // callback for handling read chunk
+        }
+
+        response.on('data', function (chunk) {
+            offset += chunk.length;
+
+            callback(null, chunk, offset, fileSize); // callback for handling read chunk
+        });
+
+        response.on('end', function () {
+            console.log("Done reading file");
+            return callback(null, null, offset, fileSize);
+        });
+
+        response.on('end', function () {
+            console.log("Done reading file");
+            return callback(null, null, offset, fileSize);
+        });
+    });
+}
+
+function showError(msg) {
+    showResult(msg);
+}
+
 function showResult(data) {
     document.getElementById('result').innerHTML = '<pre><code>' + data + '</code></pre>';
+}
+
+function onFileSourceChange() {
+    if (document.getElementById('input-file-local').checked === true) {
+        document.getElementById('input-file').style.display = "table";
+        document.getElementById('input-url').style.display = "none";
+    }
+    else if (document.getElementById('input-file-url').checked === true) {
+        document.getElementById('input-file').style.display = "none";
+        document.getElementById('input-url').style.display = "block";
+    }
 }
 
 //Start execution
 
 document.getElementById('input-ts-file').addEventListener('change', onFileSelectHandle, false);
+
+document.getElementById('input-file-selector').addEventListener('click', onFileSourceChange, false);
+
+document.getElementById('input-file-url-process').addEventListener('click', onURLProcessClick, false);
 
 checkFileAPI();
