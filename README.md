@@ -20,7 +20,8 @@ Taking advantage of HLS v6 we can generate a byte range HLS chunklist that preve
 ```
 You can execute `./transport-stream-segmenter-cli.js` (without arguments) to get help about accepted parameters
 
-#TODO
+# TODO
+
 * Add option to read from URL (very easy)
 
 (*) If you do not have any ts file you can generate one by using `ffmpeg`:
