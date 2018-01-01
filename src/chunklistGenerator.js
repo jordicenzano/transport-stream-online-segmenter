@@ -13,14 +13,27 @@ const TS_PACKET_SIZE = 188;
 // Constructor
 class chunklistGenerator {
 
-    constructor(input_ts_file_name, target_segment_dur_s) {
+    constructor(input_ts_file_name, target_segment_dur_s, chunklist_type) {
 
         //Create packet parsers. According to the docs it is compiled at first call, so we can NOT create it inside packet (time consuming)
         this.tspckParser = new tspckParserMod.tspacketParser().getPacketParser();
         this.tspckPATParser = new tspckParserMod.tspacketParser().getPATPacketParser();
         this.tspckPMTParser = new tspckParserMod.tspacketParser().getPMTPacketParser();
 
+        this.chunklist_type = hlsChunklist.enChunklistType.VOD;
+        if (typeof(chunklist_type) === 'string') {
+            if (chunklist_type === hlsChunklist.enChunklistType.LIVE_EVENT)
+                this.chunklist_type = hlsChunklist.enChunklistType.LIVE_EVENT;
+            else if (chunklist_type === hlsChunklist.enChunklistType.LIVE_WINDOW)
+                this.chunklist_type = hlsChunklist.enChunklistType.LIVE_WINDOW;
+        }
+
+        this.chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(input_ts_file_name));
+
         this.result_chunklist = "";
+
+        this.on_chunk = null;
+        this.on_chunk_data = null;
 
         this.segmenter_data = {
             config: {
@@ -94,17 +107,7 @@ class chunklistGenerator {
             //Process remaining TS packets
             this._process_data_finish();
 
-            //Generate chunklist
-            let chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(this.segmenter_data.config.source));
-
-            //Set media init data
-            chunklist_generator.setMediaIniInfo(this.segmenter_data.media_init_info);
-
-            //Set chunks data
-            chunklist_generator.setChunksInfo(this.segmenter_data.chunks_info);
-
-            //Create HLS chunklist string
-            this.result_chunklist = chunklist_generator.toString();
+            this.result_chunklist = this._generateChunklist(true);
         }
         catch (err) {
             return callback(err, null);
@@ -113,7 +116,33 @@ class chunklistGenerator {
         return callback(null, this.result_chunklist);
     }
 
+    addOnChunkListerer(callback, data) {
+        this.on_chunk = callback;
+        this.on_chunk_data = data;
+    }
+
+    _generateChunklist(is_end) {
+
+        //Set media init data
+        this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_init_info);
+
+        //Set chunks data
+        this.chunklist_generator.setChunksInfo(this.segmenter_data.chunks_info);
+
+        //Create HLS chunklist string
+        return this.chunklist_generator.toString(this.chunklist_type, is_end);
+    }
+
     _createNewChunk() {
+
+        //Send event
+        if (this.on_chunk !== null) {
+            //Generate chunklist
+            let temp_chunklist = this._generateChunklist(false);
+
+            this.on_chunk(this.on_chunk_data, temp_chunklist);
+        }
+
         this.segmenter_data.chunk = new  hlsChunk.hls_chunk(this.segmenter_data.segment_index);
         this.segmenter_data.segment_index++;
     }
@@ -256,3 +285,4 @@ class chunklistGenerator {
 
 //Export class
 module.exports.chunklistGenerator = chunklistGenerator;
+module.exports.enChunklistType = hlsChunklist.enChunklistType;

@@ -1,6 +1,13 @@
 
 "use strict";
 
+//Allowed live ingest protocols
+const enChunklistType = {
+    VOD: "vod",
+    LIVE_EVENT: "event",
+    LIVE_WINDOW: "window"
+};
+
 class hls_chunklist {
     constructor(media_file_url) {
 
@@ -25,9 +32,17 @@ class hls_chunklist {
         this.media_info = media_info;
     }
 
-    toString() {
+    toString(type, is_closed) {
         if ((this.chunks_info === null) || (this.media_info === null))
             return null;
+
+        let chunklist_type = enChunklistType.VOD;
+        let is_adding_endlist = true;
+        if ((typeof (type) === 'string') && (type === enChunklistType.LIVE_EVENT))
+            chunklist_type = enChunklistType.LIVE_EVENT;
+
+        if (typeof (is_closed) === 'boolean')
+            is_adding_endlist = is_closed;
 
         let ret = [];
 
@@ -35,7 +50,11 @@ class hls_chunklist {
         ret.push('#EXT-X-TARGETDURATION:' + this.target_duration_s.toString());
         ret.push('#EXT-X-VERSION:6');
         ret.push('#EXT-X-MEDIA-SEQUENCE:0');
-        ret.push('#EXT-X-PLAYLIST-TYPE:VOD');
+
+        if (chunklist_type === enChunklistType.VOD)
+            ret.push('#EXT-X-PLAYLIST-TYPE:VOD');
+        else  if (chunklist_type === enChunklistType.LIVE_EVENT)
+            ret.push('#EXT-X-PLAYLIST-TYPE:EVENT');
 
         ret.push('#EXT-X-MAP:URI="' + this.media_file_url + '",BYTERANGE="' + (this.media_info.getLastBytePos() - this.media_info.getFirstBytePos()) + '@' + this.media_info.getFirstBytePos() + '"');
 
@@ -46,7 +65,9 @@ class hls_chunklist {
             ret.push('#EXT-X-BYTERANGE:' + (chunk_info.getLastBytePos() - chunk_info.getFirstBytePos()) + '@' + chunk_info.getFirstBytePos());
             ret.push(this.media_file_url);
         }
-        ret.push('#EXT-X-ENDLIST');
+
+        if (is_adding_endlist)
+            ret.push('#EXT-X-ENDLIST');
 
         return ret.join('\n');
     }
@@ -54,3 +75,4 @@ class hls_chunklist {
 
 //Export class
 module.exports.hls_chunklist = hls_chunklist;
+module.exports.enChunklistType = enChunklistType;
