@@ -4,6 +4,7 @@ const tspck = require('./tspacket.js');
 const tspckParserMod = require('./tspacket_parser');
 
 const hlsChunk = require('./hls_chunk.js');
+const hls_media_info = require('./hls_media_info.js');
 const hlsChunklist = require('./hls_chunklist.js');
 
 "use strict";
@@ -13,7 +14,7 @@ const TS_PACKET_SIZE = 188;
 // Constructor
 class chunklistGenerator {
 
-    constructor(input_ts_file_name, target_segment_dur_s, chunklist_type) {
+    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type, live_window_size) {
 
         //Create packet parsers. According to the docs it is compiled at first call, so we can NOT create it inside packet (time consuming)
         this.tspckParser = new tspckParserMod.tspacketParser().getPacketParser();
@@ -28,7 +29,15 @@ class chunklistGenerator {
                 this.chunklist_type = hlsChunklist.enChunklistType.LIVE_WINDOW;
         }
 
-        this.chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(input_ts_file_name));
+        let chunklist_options = {
+            is_splitting_chunks: is_creating_chunks,
+            is_using_relative_path: true
+        };
+
+        if (typeof (live_window_size) === 'number')
+            chunklist_options.live_window_size = live_window_size;
+
+        this.chunklist_generator = new hlsChunklist.hls_chunklist(this.chunklist_type, path.basename(chunk_base_filename), chunklist_options);
 
         this.result_chunklist = "";
 
@@ -37,7 +46,10 @@ class chunklistGenerator {
 
         this.segmenter_data = {
             config: {
-                source: input_ts_file_name,
+                base_path: base_path,
+                chunk_base_filename: chunk_base_filename,
+                is_creating_chunks: is_creating_chunks,
+
                 packet_expected_length: TS_PACKET_SIZE,
 
                 //Only 1 video allowed
@@ -48,7 +60,6 @@ class chunklistGenerator {
 
             //Params for read TS
             curr_file_pos_byte: 0,
-            video_packet_pid: -1, //Autodetected (Usually is 0x100)
             segment_index: 0,
             bytes_next_sync: 0,
 
@@ -57,38 +68,14 @@ class chunklistGenerator {
             chunk: null,
 
             //Media init info (PAT + PMT)
-            media_init_info: {
-                set: false,
-                pat: {
-                    first_byte_pos: -1,
-                    last_byte_pos: -1,
-                },
-                pmt: {
-                    id: -1,
-                    first_byte_pos: -1,
-                    last_byte_pos: -1,
-                },
-                getFirstBytePos() {
-                    let ret = -1;
-
-                    if (this.set)
-                        ret = Math.min(this.pat.first_byte_pos, this.pmt.first_byte_pos);
-
-                    return ret;
-                },
-                getLastBytePos() {
-                    let ret = -1;
-
-                    if (this.set)
-                        ret = Math.max(this.pat.last_byte_pos, this.pmt.last_byte_pos);
-
-                    return ret;
-                }
-            },
+            media_info: new hls_media_info.hls_media_info(),
 
             //Chunks info
             chunks_info: []
         };
+
+        if (this.segmenter_data.config.is_creating_chunks)
+            this.segmenter_data.media_info.setFileName(path.join(this.segmenter_data.config.base_path, path.basename(this.segmenter_data.config.chunk_base_filename) + "init.ts"));
     }
 
     processDataChunk(data, callback) {
@@ -107,7 +94,7 @@ class chunklistGenerator {
             //Process remaining TS packets
             this._process_data_finish();
 
-            this.result_chunklist = this._generateChunklist(true);
+            this.result_chunklist = this.chunklist_generator.toString(true);
         }
         catch (err) {
             return callback(err, null);
@@ -116,35 +103,42 @@ class chunklistGenerator {
         return callback(null, this.result_chunklist);
     }
 
-    addOnChunkListerer(callback, data) {
+    setOnChunkListerer(callback, data) {
         this.on_chunk = callback;
         this.on_chunk_data = data;
     }
 
-    _generateChunklist(is_end) {
-
-        //Set media init data
-        this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_init_info);
-
-        //Set chunks data
-        this.chunklist_generator.setChunksInfo(this.segmenter_data.chunks_info);
-
-        //Create HLS chunklist string
-        return this.chunklist_generator.toString(this.chunklist_type, is_end);
+    removeOnChunkListerer() {
+        this.on_chunk = null;
+        this.on_chunk_data = null;
     }
 
-    _createNewChunk() {
+    _createNewChunk(is_last) {
+        if (this.segmenter_data.chunk != null) {
+            this.segmenter_data.chunk.close();
+
+            //Add chunk info
+            this.chunklist_generator.addChunkInfo(this.segmenter_data.chunk);
+        }
 
         //Send event
         if (this.on_chunk !== null) {
             //Generate chunklist
-            let temp_chunklist = this._generateChunklist(false);
-
-            this.on_chunk(this.on_chunk_data, temp_chunklist);
+            this.on_chunk(this.on_chunk_data, this.chunklist_generator.toString(false));
         }
 
-        this.segmenter_data.chunk = new  hlsChunk.hls_chunk(this.segmenter_data.segment_index);
-        this.segmenter_data.segment_index++;
+        let chunk_options = null;
+        if (this.segmenter_data.config.is_creating_chunks) {
+            chunk_options = {
+                base_path: this.segmenter_data.config.base_path,
+                chunk_base_file_name: this.segmenter_data.config.chunk_base_filename
+            };
+        }
+
+        if ((typeof (is_last) === 'undefined') || (is_last === false)) {
+            this.segmenter_data.chunk = new hlsChunk.hls_chunk(this.segmenter_data.segment_index, chunk_options);
+            this.segmenter_data.segment_index++;
+        }
     }
 
     _process_data_finish() {
@@ -153,42 +147,47 @@ class chunklistGenerator {
 
         this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
 
-        this._createNewChunk();
+        this._createNewChunk(true);
     }
 
-    _getMediaInfoData(ts_packet) {
+    _getMediaInfoData(is_creating_chunks, media_info, ts_packet) {
         let ret = false;
 
         if (ts_packet.isPAT()) {
             let pmtsData = ts_packet.getPMTsIDs();
-            if ((Array.isArray(pmtsData)) && (pmtsData.length > 1))
+            if ((Array.isArray(pmtsData)) && (pmtsData.length > 1)) {
                 throw new Error("More than 1 PMT not supported!!");
-            else
-                this.segmenter_data.media_init_info.pmt.id = pmtsData[0].pmtID;
+            }
+            else {
+                media_info.setPat(pmtsData[0].pmtID, ts_packet.getFirstBytePos(), ts_packet.getLastBytePos());
 
-            this.segmenter_data.media_init_info.pat.first_byte_pos = this.segmenter_data.ts_packet.getFirstBytePos();
-            this.segmenter_data.media_init_info.pat.last_byte_pos = this.segmenter_data.ts_packet.getLastBytePos();
+                if (is_creating_chunks)
+                    media_info.addTSPacket(ts_packet);
+            }
         }
-        else if (ts_packet.isID(this.segmenter_data.media_init_info.pmt.id)) {
+        else if (ts_packet.isID(media_info.getPmtId())) {
             let esInfo = ts_packet.getESInfo();
 
             if (Array.isArray(esInfo)) {
                 let i = 0;
-                while ((this.segmenter_data.video_packet_pid < 0) && (i < esInfo.length)) {
+                while ((media_info.getVideoPid() < 0) && (i < esInfo.length)) {
 
                     if (tspck.tspacket.isStreamTypeVideo(esInfo[i].streamType))
-                        this.segmenter_data.video_packet_pid = esInfo[i].elementaryPID;
+                        media_info.setVideoPid(esInfo[i].elementaryPID);
 
                     i++;
                 }
             }
 
-            this.segmenter_data.media_init_info.pmt.first_byte_pos = this.segmenter_data.ts_packet.getFirstBytePos();
-            this.segmenter_data.media_init_info.pmt.last_byte_pos = this.segmenter_data.ts_packet.getLastBytePos();
+            media_info.setPmt(ts_packet.getFirstBytePos(), ts_packet.getLastBytePos());
+            if (is_creating_chunks)
+                media_info.addTSPacket(ts_packet);
         }
 
-        //Media init complete
-        if ((this.segmenter_data.media_init_info.pat.first_byte_pos >= 0) && (this.segmenter_data.media_init_info.pat.last_byte_pos >= 0) && (this.segmenter_data.media_init_info.pmt.first_byte_pos >= 0) && (this.segmenter_data.media_init_info.pmt.last_byte_pos >= 0))
+        if (is_creating_chunks && media_info.getIsSet() && !media_info.getIsSaved())
+            media_info.save();
+
+        if (media_info.getIsSet())
             ret = true;
 
         return ret;
@@ -222,9 +221,9 @@ class chunklistGenerator {
                     this.segmenter_data.ts_packet.addDataWithPos(this.segmenter_data.curr_file_pos_byte, data, curr_packet_start, curr_packet_end);
 
                     //Check if random access
-                    let is_random_access_point = this.segmenter_data.ts_packet.isRandomAccess(this.segmenter_data.video_packet_pid);
+                    let is_random_access_point = this.segmenter_data.ts_packet.isRandomAccess(this.segmenter_data.media_info.getVideoPid());
                     if (is_random_access_point)
-                        console.log("(" +  this.segmenter_data.video_packet_pid + ") Random access point (IDR)");
+                        console.log("(" +  this.segmenter_data.media_info.getVideoPid() + ") Random access point (IDR)");
 
                     //If NOT 1st packet (0 length)
                     if (this.segmenter_data.is_first_packet === false) {
@@ -250,10 +249,16 @@ class chunklistGenerator {
                             this._createNewChunk();
                         }
 
-                        if (!this.segmenter_data.media_init_info.set)
-                            this.segmenter_data.media_init_info.set = this._getMediaInfoData(this.segmenter_data.ts_packet);
-                        else
+                        //Do not save chunks until media init is set
+                        if (this.segmenter_data.media_info.getIsSet() === false) {
+                            if (this._getMediaInfoData(this.segmenter_data.config.is_creating_chunks, this.segmenter_data.media_info, this.segmenter_data.ts_packet) === true) {
+                                //Set media init data
+                                this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_info);
+                            }
+                        }
+                        else {
                             this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                        }
 
                         //New packet
                         this.segmenter_data.ts_packet = new tspck.tspacket(this.segmenter_data.packet_size, this.tspckParser, this.tspckPATParser, this.tspckPMTParser);

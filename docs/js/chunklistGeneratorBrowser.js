@@ -915,6 +915,8 @@ exports.Context = Context;
 },{}],4:[function(require,module,exports){
 
 },{}],5:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"dup":4}],6:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2630,7 +2632,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":1,"ieee754":10}],6:[function(require,module,exports){
+},{"base64-js":1,"ieee754":11}],7:[function(require,module,exports){
 module.exports = {
   "100": "Continue",
   "101": "Switching Protocols",
@@ -2696,7 +2698,7 @@ module.exports = {
   "511": "Network Authentication Required"
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -2807,7 +2809,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":12}],8:[function(require,module,exports){
+},{"../../is-buffer/index.js":13}],9:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3111,7 +3113,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var http = require('http')
 var url = require('url')
 
@@ -3144,7 +3146,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":31,"url":37}],10:[function(require,module,exports){
+},{"http":32,"url":38}],11:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -3230,7 +3232,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3255,7 +3257,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -3278,14 +3280,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -3513,7 +3515,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":16}],15:[function(require,module,exports){
+},{"_process":17}],16:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3560,7 +3562,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":16}],16:[function(require,module,exports){
+},{"_process":17}],17:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -3746,7 +3748,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -4283,7 +4285,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4369,7 +4371,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4456,13 +4458,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":18,"./encode":19}],21:[function(require,module,exports){
+},{"./decode":19,"./encode":20}],22:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4587,7 +4589,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":23,"./_stream_writable":25,"core-util-is":7,"inherits":11,"process-nextick-args":15}],22:[function(require,module,exports){
+},{"./_stream_readable":24,"./_stream_writable":26,"core-util-is":8,"inherits":12,"process-nextick-args":16}],23:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4635,7 +4637,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":24,"core-util-is":7,"inherits":11}],23:[function(require,module,exports){
+},{"./_stream_transform":25,"core-util-is":8,"inherits":12}],24:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5645,7 +5647,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":21,"./internal/streams/BufferList":26,"./internal/streams/destroy":27,"./internal/streams/stream":28,"_process":16,"core-util-is":7,"events":8,"inherits":11,"isarray":13,"process-nextick-args":15,"safe-buffer":30,"string_decoder/":35,"util":4}],24:[function(require,module,exports){
+},{"./_stream_duplex":22,"./internal/streams/BufferList":27,"./internal/streams/destroy":28,"./internal/streams/stream":29,"_process":17,"core-util-is":8,"events":9,"inherits":12,"isarray":14,"process-nextick-args":16,"safe-buffer":31,"string_decoder/":36,"util":4}],25:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5860,7 +5862,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":21,"core-util-is":7,"inherits":11}],25:[function(require,module,exports){
+},{"./_stream_duplex":22,"core-util-is":8,"inherits":12}],26:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -6527,7 +6529,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":21,"./internal/streams/destroy":27,"./internal/streams/stream":28,"_process":16,"core-util-is":7,"inherits":11,"process-nextick-args":15,"safe-buffer":30,"util-deprecate":39}],26:[function(require,module,exports){
+},{"./_stream_duplex":22,"./internal/streams/destroy":28,"./internal/streams/stream":29,"_process":17,"core-util-is":8,"inherits":12,"process-nextick-args":16,"safe-buffer":31,"util-deprecate":40}],27:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -6602,7 +6604,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":30}],27:[function(require,module,exports){
+},{"safe-buffer":31}],28:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -6675,10 +6677,10 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":15}],28:[function(require,module,exports){
+},{"process-nextick-args":16}],29:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":8}],29:[function(require,module,exports){
+},{"events":9}],30:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -6687,7 +6689,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":21,"./lib/_stream_passthrough.js":22,"./lib/_stream_readable.js":23,"./lib/_stream_transform.js":24,"./lib/_stream_writable.js":25}],30:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":22,"./lib/_stream_passthrough.js":23,"./lib/_stream_readable.js":24,"./lib/_stream_transform.js":25,"./lib/_stream_writable.js":26}],31:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -6751,7 +6753,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":5}],31:[function(require,module,exports){
+},{"buffer":6}],32:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var extend = require('xtend')
@@ -6833,7 +6835,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":33,"builtin-status-codes":6,"url":37,"xtend":40}],32:[function(require,module,exports){
+},{"./lib/request":34,"builtin-status-codes":7,"url":38,"xtend":41}],33:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -6906,7 +6908,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -7216,7 +7218,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":32,"./response":34,"_process":16,"buffer":5,"inherits":11,"readable-stream":29,"to-arraybuffer":36}],34:[function(require,module,exports){
+},{"./capability":33,"./response":35,"_process":17,"buffer":6,"inherits":12,"readable-stream":30,"to-arraybuffer":37}],35:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -7402,7 +7404,7 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":32,"_process":16,"buffer":5,"inherits":11,"readable-stream":29}],35:[function(require,module,exports){
+},{"./capability":33,"_process":17,"buffer":6,"inherits":12,"readable-stream":30}],36:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -7675,7 +7677,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":30}],36:[function(require,module,exports){
+},{"safe-buffer":31}],37:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -7704,7 +7706,7 @@ module.exports = function (buf) {
 	}
 }
 
-},{"buffer":5}],37:[function(require,module,exports){
+},{"buffer":6}],38:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8438,7 +8440,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":38,"punycode":17,"querystring":20}],38:[function(require,module,exports){
+},{"./util":39,"punycode":18,"querystring":21}],39:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -8456,7 +8458,7 @@ module.exports = {
   }
 };
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8527,7 +8529,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -8548,13 +8550,14 @@ function extend() {
     return target
 }
 
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 const path = require('path');
 
 const tspck = require('./tspacket.js');
 const tspckParserMod = require('./tspacket_parser');
 
 const hlsChunk = require('./hls_chunk.js');
+const hls_media_info = require('./hls_media_info.js');
 const hlsChunklist = require('./hls_chunklist.js');
 
 "use strict";
@@ -8564,7 +8567,7 @@ const TS_PACKET_SIZE = 188;
 // Constructor
 class chunklistGenerator {
 
-    constructor(input_ts_file_name, target_segment_dur_s, chunklist_type) {
+    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type) {
 
         //Create packet parsers. According to the docs it is compiled at first call, so we can NOT create it inside packet (time consuming)
         this.tspckParser = new tspckParserMod.tspacketParser().getPacketParser();
@@ -8576,7 +8579,7 @@ class chunklistGenerator {
             if (chunklist_type === hlsChunklist.enChunklistType.LIVE_EVENT) this.chunklist_type = hlsChunklist.enChunklistType.LIVE_EVENT;else if (chunklist_type === hlsChunklist.enChunklistType.LIVE_WINDOW) this.chunklist_type = hlsChunklist.enChunklistType.LIVE_WINDOW;
         }
 
-        this.chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(input_ts_file_name));
+        this.chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(chunk_base_filename), { is_splitting_chunks: is_creating_chunks, is_using_relative_path: true });
 
         this.result_chunklist = "";
 
@@ -8585,7 +8588,10 @@ class chunklistGenerator {
 
         this.segmenter_data = {
             config: {
-                source: input_ts_file_name,
+                base_path: base_path,
+                chunk_base_filename: chunk_base_filename,
+                is_creating_chunks: is_creating_chunks,
+
                 packet_expected_length: TS_PACKET_SIZE,
 
                 //Only 1 video allowed
@@ -8596,7 +8602,6 @@ class chunklistGenerator {
 
             //Params for read TS
             curr_file_pos_byte: 0,
-            video_packet_pid: -1, //Autodetected (Usually is 0x100)
             segment_index: 0,
             bytes_next_sync: 0,
 
@@ -8605,36 +8610,13 @@ class chunklistGenerator {
             chunk: null,
 
             //Media init info (PAT + PMT)
-            media_init_info: {
-                set: false,
-                pat: {
-                    first_byte_pos: -1,
-                    last_byte_pos: -1
-                },
-                pmt: {
-                    id: -1,
-                    first_byte_pos: -1,
-                    last_byte_pos: -1
-                },
-                getFirstBytePos() {
-                    let ret = -1;
-
-                    if (this.set) ret = Math.min(this.pat.first_byte_pos, this.pmt.first_byte_pos);
-
-                    return ret;
-                },
-                getLastBytePos() {
-                    let ret = -1;
-
-                    if (this.set) ret = Math.max(this.pat.last_byte_pos, this.pmt.last_byte_pos);
-
-                    return ret;
-                }
-            },
+            media_info: new hls_media_info.hls_media_info(),
 
             //Chunks info
             chunks_info: []
         };
+
+        if (this.segmenter_data.config.is_creating_chunks) this.segmenter_data.media_info.setFileName(path.join(this.segmenter_data.config.base_path, path.basename(this.segmenter_data.config.chunk_base_filename) + "init.ts"));
     }
 
     processDataChunk(data, callback) {
@@ -8660,15 +8642,20 @@ class chunklistGenerator {
         return callback(null, this.result_chunklist);
     }
 
-    addOnChunkListerer(callback, data) {
+    setOnChunkListerer(callback, data) {
         this.on_chunk = callback;
         this.on_chunk_data = data;
+    }
+
+    removeOnChunkListerer() {
+        this.on_chunk = null;
+        this.on_chunk_data = null;
     }
 
     _generateChunklist(is_end) {
 
         //Set media init data
-        this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_init_info);
+        this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_info);
 
         //Set chunks data
         this.chunklist_generator.setChunksInfo(this.segmenter_data.chunks_info);
@@ -8677,7 +8664,7 @@ class chunklistGenerator {
         return this.chunklist_generator.toString(this.chunklist_type, is_end);
     }
 
-    _createNewChunk() {
+    _createNewChunk(is_last) {
 
         //Send event
         if (this.on_chunk !== null) {
@@ -8687,8 +8674,20 @@ class chunklistGenerator {
             this.on_chunk(this.on_chunk_data, temp_chunklist);
         }
 
-        this.segmenter_data.chunk = new hlsChunk.hls_chunk(this.segmenter_data.segment_index);
-        this.segmenter_data.segment_index++;
+        if (this.segmenter_data.chunk != null) this.segmenter_data.chunk.close();
+
+        let chunk_options = null;
+        if (this.segmenter_data.config.is_creating_chunks) {
+            chunk_options = {
+                base_path: this.segmenter_data.config.base_path,
+                chunk_base_file_name: this.segmenter_data.config.chunk_base_filename
+            };
+        }
+
+        if (typeof is_last === 'undefined' || is_last === false) {
+            this.segmenter_data.chunk = new hlsChunk.hls_chunk(this.segmenter_data.segment_index, chunk_options);
+            this.segmenter_data.segment_index++;
+        }
     }
 
     _process_data_finish() {
@@ -8697,39 +8696,37 @@ class chunklistGenerator {
 
         this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
 
-        this._createNewChunk();
+        this._createNewChunk(true);
     }
 
-    _getMediaInfoData(ts_packet) {
-        let ret = false;
-
+    _getMediaInfoData(is_creating_chunks, media_info, ts_packet) {
         if (ts_packet.isPAT()) {
             let pmtsData = ts_packet.getPMTsIDs();
-            if (Array.isArray(pmtsData) && pmtsData.length > 1) throw new Error("More than 1 PMT not supported!!");else this.segmenter_data.media_init_info.pmt.id = pmtsData[0].pmtID;
+            if (Array.isArray(pmtsData) && pmtsData.length > 1) {
+                throw new Error("More than 1 PMT not supported!!");
+            } else {
+                media_info.setPat(pmtsData[0].pmtID, ts_packet.getFirstBytePos(), ts_packet.getLastBytePos());
 
-            this.segmenter_data.media_init_info.pat.first_byte_pos = this.segmenter_data.ts_packet.getFirstBytePos();
-            this.segmenter_data.media_init_info.pat.last_byte_pos = this.segmenter_data.ts_packet.getLastBytePos();
-        } else if (ts_packet.isID(this.segmenter_data.media_init_info.pmt.id)) {
+                if (is_creating_chunks) media_info.addTSPacket(ts_packet);
+            }
+        } else if (ts_packet.isID(media_info.getPmtId())) {
             let esInfo = ts_packet.getESInfo();
 
             if (Array.isArray(esInfo)) {
                 let i = 0;
-                while (this.segmenter_data.video_packet_pid < 0 && i < esInfo.length) {
+                while (media_info.getVideoPid() < 0 && i < esInfo.length) {
 
-                    if (tspck.tspacket.isStreamTypeVideo(esInfo[i].streamType)) this.segmenter_data.video_packet_pid = esInfo[i].elementaryPID;
+                    if (tspck.tspacket.isStreamTypeVideo(esInfo[i].streamType)) media_info.setVideoPid(esInfo[i].elementaryPID);
 
                     i++;
                 }
             }
 
-            this.segmenter_data.media_init_info.pmt.first_byte_pos = this.segmenter_data.ts_packet.getFirstBytePos();
-            this.segmenter_data.media_init_info.pmt.last_byte_pos = this.segmenter_data.ts_packet.getLastBytePos();
+            media_info.setPmt(ts_packet.getFirstBytePos(), ts_packet.getLastBytePos());
+            if (is_creating_chunks) media_info.addTSPacket(ts_packet);
         }
 
-        //Media init complete
-        if (this.segmenter_data.media_init_info.pat.first_byte_pos >= 0 && this.segmenter_data.media_init_info.pat.last_byte_pos >= 0 && this.segmenter_data.media_init_info.pmt.first_byte_pos >= 0 && this.segmenter_data.media_init_info.pmt.last_byte_pos >= 0) ret = true;
-
-        return ret;
+        if (is_creating_chunks && media_info.getIsSet() && !media_info.getIsSaved()) media_info.save();
     }
 
     _process_data_chunk(data) {
@@ -8757,8 +8754,8 @@ class chunklistGenerator {
                     this.segmenter_data.ts_packet.addDataWithPos(this.segmenter_data.curr_file_pos_byte, data, curr_packet_start, curr_packet_end);
 
                     //Check if random access
-                    let is_random_access_point = this.segmenter_data.ts_packet.isRandomAccess(this.segmenter_data.video_packet_pid);
-                    if (is_random_access_point) console.log("(" + this.segmenter_data.video_packet_pid + ") Random access point (IDR)");
+                    let is_random_access_point = this.segmenter_data.ts_packet.isRandomAccess(this.segmenter_data.media_info.getVideoPid());
+                    if (is_random_access_point) console.log("(" + this.segmenter_data.media_info.getVideoPid() + ") Random access point (IDR)");
 
                     //If NOT 1st packet (0 length)
                     if (this.segmenter_data.is_first_packet === false) {
@@ -8782,7 +8779,8 @@ class chunklistGenerator {
                             this._createNewChunk();
                         }
 
-                        if (!this.segmenter_data.media_init_info.set) this.segmenter_data.media_init_info.set = this._getMediaInfoData(this.segmenter_data.ts_packet);else this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                        //Do not save chunks until media init is set
+                        if (this.segmenter_data.media_info.getIsSet() === false) this._getMediaInfoData(this.segmenter_data.config.is_creating_chunks, this.segmenter_data.media_info, this.segmenter_data.ts_packet);else this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
 
                         //New packet
                         this.segmenter_data.ts_packet = new tspck.tspacket(this.segmenter_data.packet_size, this.tspckParser, this.tspckPATParser, this.tspckPMTParser);
@@ -8814,7 +8812,7 @@ class chunklistGenerator {
 module.exports.chunklistGenerator = chunklistGenerator;
 module.exports.enChunklistType = hlsChunklist.enChunklistType;
 
-},{"./hls_chunk.js":43,"./hls_chunklist.js":44,"./tspacket.js":45,"./tspacket_parser":46,"path":14}],42:[function(require,module,exports){
+},{"./hls_chunk.js":44,"./hls_chunklist.js":45,"./hls_media_info.js":46,"./tspacket.js":47,"./tspacket_parser":48,"path":15}],43:[function(require,module,exports){
 (function (Buffer){
 const http = require("http");
 const https = require("https");
@@ -8840,7 +8838,7 @@ function chunklistGeneratorBrowser(is_url, source, target_duration, final_callba
     }
 
     //Instantiate class
-    let segmenter = new chkGenerator.chunklistGenerator(file_name_url, target_duration);
+    let segmenter = new chkGenerator.chunklistGenerator(false, null, file_name_url, target_duration);
 
     processFunction(source, function (err, data_chunk, read, total) {
         if (err) {
@@ -9014,13 +9012,29 @@ document.getElementById('input-file-url-process').addEventListener('click', onUR
 checkFileAPI();
 
 }).call(this,require("buffer").Buffer)
-},{"./chunklistGenerator.js":41,"buffer":5,"http":31,"https":9}],43:[function(require,module,exports){
+},{"./chunklistGenerator.js":42,"buffer":6,"http":32,"https":10}],44:[function(require,module,exports){
+
+const fs = require('fs');
+const path = require('path');
 const tspck = require('./tspacket.js');
 
 "use strict";
 
+const GHOST_PREFIX_DEFAULT = ".growing_";
+const FILE_NUMBER_LENGTH_DEFAULT = 5;
+const FILE_CHUNK_EXTENSION_DEFAULT = ".ts";
+
+Number.prototype.pad = function (size) {
+    let s = String(this);
+    while (s.length < (size || 2)) {
+        s = "0" + s;
+    }
+    return s;
+};
+
 class hls_chunk {
-    constructor(index) {
+
+    constructor(index, options) {
 
         this.index = index;
 
@@ -9032,10 +9046,56 @@ class hls_chunk {
         this.first_pcr = -1;
         this.last_pcr = -1;
         this.duration_s = 0;
+
+        this.is_writing_chunks = false;
+
+        if (options != null && typeof options === 'object') {
+            this.is_writing_chunks = true;
+
+            let ghost_prefix = GHOST_PREFIX_DEFAULT;
+            if ("ghost_prefix" in options && typeof options.ghost_prefix === 'string') ghost_prefix = options.ghost_prefix;
+
+            let file_number_length = FILE_NUMBER_LENGTH_DEFAULT;
+            if ("file_number_length" in options && typeof options.file_number_length === 'number') file_number_length = options.file_number_length;
+
+            let file_extension = FILE_CHUNK_EXTENSION_DEFAULT;
+            if ("file_extension" in options && typeof options.file_extension === 'string') file_extension = options.file_extension;
+
+            this.filename = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension);
+            this.filename_ghost = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension, ghost_prefix);
+
+            //Create ghost file indicting is growing
+            fs.writeFileSync(this.filename_ghost, "");
+
+            //Create growing file
+            this.curr_stream = null;
+        }
+    }
+
+    close() {
+        if (this.is_writing_chunks === true) {
+            if (this.curr_stream != null) {
+                this.curr_stream.end();
+                this.curr_stream = null;
+            }
+
+            if (this.filename_ghost != null) {
+                if (fs.existsSync(this.filename_ghost)) fs.unlinkSync(this.filename_ghost);
+            }
+        }
     }
 
     addTSPacket(ts_packet) {
         this.addTSPacketInfo(ts_packet.getInfo());
+
+        if (this.is_writing_chunks === true) {
+            if (this.curr_stream === null) {
+                //Create growing file
+                this.curr_stream = fs.createWriteStream(this.filename);
+            }
+
+            this.curr_stream.write(ts_packet.getBuffer());
+        }
     }
 
     addTSPacketInfo(ts_packet_info) {
@@ -9081,31 +9141,57 @@ class hls_chunk {
     getDuration() {
         return this.duration_s;
     }
+
+    getFileName() {
+        return this.filename;
+    }
+
+    getFileNameGhost() {
+        return this.filename_ghost;
+    }
+
+    _createFilename(base_path, chunk_base_file_name, index, file_number_length, file_extension, ghost_prefix) {
+        let ret = "";
+
+        if (typeof ghost_prefix === 'string') ret = path.join(base_path, ghost_prefix + chunk_base_file_name + index.pad(file_number_length) + file_extension);else ret = path.join(base_path, chunk_base_file_name + index.pad(file_number_length) + file_extension);
+
+        return ret;
+    }
 }
 
 //Export class
 module.exports.hls_chunk = hls_chunk;
 
-},{"./tspacket.js":45}],44:[function(require,module,exports){
+},{"./tspacket.js":47,"fs":5,"path":15}],45:[function(require,module,exports){
+const path = require('path');
 
 "use strict";
 
 //Allowed live ingest protocols
-
 const enChunklistType = {
     VOD: "vod",
     LIVE_EVENT: "event",
     LIVE_WINDOW: "window"
 };
 
+//TODO: Implement live window
+
 class hls_chunklist {
-    constructor(media_file_url) {
+    constructor(media_file_url, options) {
 
         this.chunks_info = null;
         this.media_info = null;
 
         this.target_duration_s = -1;
         this.media_file_url = media_file_url;
+        this.is_splitting_chunks = false;
+        this.is_using_relative_path = false;
+
+        if (typeof options === 'object') {
+            if (options.is_splitting_chunks === true) this.is_splitting_chunks = true;
+
+            if (options.is_using_relative_path === true) this.is_using_relative_path = true;
+        }
     }
 
     setChunksInfo(chunks_info) {
@@ -9123,7 +9209,7 @@ class hls_chunklist {
     }
 
     toString(type, is_closed) {
-        if (this.chunks_info === null || this.media_info === null) return null;
+        if (this.chunks_info === null || this.media_info === null || this.media_info.getIsSet() === false) return null;
 
         let chunklist_type = enChunklistType.VOD;
         let is_adding_endlist = true;
@@ -9140,14 +9226,26 @@ class hls_chunklist {
 
         if (chunklist_type === enChunklistType.VOD) ret.push('#EXT-X-PLAYLIST-TYPE:VOD');else if (chunklist_type === enChunklistType.LIVE_EVENT) ret.push('#EXT-X-PLAYLIST-TYPE:EVENT');
 
-        ret.push('#EXT-X-MAP:URI="' + this.media_file_url + '",BYTERANGE="' + (this.media_info.getLastBytePos() - this.media_info.getFirstBytePos()) + '@' + this.media_info.getFirstBytePos() + '"');
+        if (this.is_splitting_chunks === false) {
+            ret.push('#EXT-X-MAP:URI="' + this.media_file_url + '",BYTERANGE="' + (this.media_info.getLastBytePos() - this.media_info.getFirstBytePos()) + '@' + this.media_info.getFirstBytePos() + '"');
+        } else {
+            let fileName = this.media_info.getFileName();
+
+            if (this.is_using_relative_path) fileName = path.basename(fileName);
+
+            ret.push('#EXT-X-MAP:URI="' + fileName + '"');
+        }
 
         for (let i = 0; i < this.chunks_info.length; i++) {
             let chunk_info = this.chunks_info[i];
 
             ret.push('#EXTINF:' + chunk_info.getDuration() + ',');
-            ret.push('#EXT-X-BYTERANGE:' + (chunk_info.getLastBytePos() - chunk_info.getFirstBytePos()) + '@' + chunk_info.getFirstBytePos());
-            ret.push(this.media_file_url);
+            if (this.is_splitting_chunks === false) {
+                ret.push('#EXT-X-BYTERANGE:' + (chunk_info.getLastBytePos() - chunk_info.getFirstBytePos()) + '@' + chunk_info.getFirstBytePos());
+                ret.push(this.media_file_url);
+            } else {
+                if (this.is_using_relative_path) ret.push(path.basename(chunk_info.getFileName()));else ret.push(chunk_info.getFileName());
+            }
         }
 
         if (is_adding_endlist) ret.push('#EXT-X-ENDLIST');
@@ -9160,7 +9258,120 @@ class hls_chunklist {
 module.exports.hls_chunklist = hls_chunklist;
 module.exports.enChunklistType = enChunklistType;
 
-},{}],45:[function(require,module,exports){
+},{"path":15}],46:[function(require,module,exports){
+const fs = require('fs');
+
+"use strict";
+
+class hls_media_info {
+
+    constructor() {
+
+        this.ts_packets = [];
+
+        this.filename = null;
+        this.is_saved = false;
+
+        this.video_pid = -1;
+
+        this.pat = {
+            pmt_id: -1,
+            first_byte_pos: -1,
+            last_byte_pos: -1
+        };
+
+        this.pmt = {
+            first_byte_pos: -1,
+            last_byte_pos: -1
+        };
+    }
+
+    setVideoPid(pid) {
+        this.video_pid = pid;
+    }
+
+    addTSPacket(ts_packet) {
+        this.ts_packets.push(ts_packet);
+    }
+
+    setPat(pmt_id, first_byte_pos, last_byte_pos) {
+        this.pat.pmt_id = pmt_id;
+        this.pat.first_byte_pos = first_byte_pos;
+        this.pat.last_byte_pos = last_byte_pos;
+    }
+
+    getPmtId() {
+        return this.pat.pmt_id;
+    }
+
+    setPmt(first_byte_pos, last_byte_pos) {
+        this.pmt.first_byte_pos = first_byte_pos;
+        this.pmt.last_byte_pos = last_byte_pos;
+    }
+
+    getVideoPid() {
+        return this.video_pid;
+    }
+
+    getFirstBytePos() {
+        let ret = -1;
+
+        if (this.getIsSet()) ret = Math.min(this.pat.first_byte_pos, this.pmt.first_byte_pos);
+
+        return ret;
+    }
+
+    getLastBytePos() {
+        let ret = -1;
+
+        if (this.getIsSet()) ret = Math.max(this.pat.last_byte_pos, this.pmt.last_byte_pos);
+
+        return ret;
+    }
+
+    getIsSet() {
+        let ret = false;
+
+        if (this.video_pid >= 0 && this.pat.pmt_id >= 0 && this.pat.first_byte_pos >= 0 && this.pat.last_byte_pos >= 0 && this.pmt.first_byte_pos >= 0 && this.pmt.last_byte_pos >= 0) ret = true;
+
+        return ret;
+    }
+
+    setFileName(filename) {
+        this.filename = filename;
+    }
+
+    save() {
+        if (this.filename != null) {
+            if (this.getIsSet()) {
+                let fw = fs.createWriteStream(this.filename);
+
+                for (let i = 0; i < this.ts_packets.length; i++) {
+                    let ts_packet = this.ts_packets[i];
+
+                    fw.write(ts_packet.getBuffer());
+                }
+
+                fw.end();
+
+                this.is_saved = true;
+            }
+        }
+    }
+
+    getFileName() {
+        return this.filename;
+    }
+
+    getIsSaved() {
+        return this.is_saved;
+    }
+}
+
+//Export class
+module.exports.hls_media_info = hls_media_info;
+
+},{"fs":5}],47:[function(require,module,exports){
 (function (Buffer){
 //Jordi Cenzano 2017
 
@@ -9446,7 +9657,7 @@ class tspacket {
 module.exports.tspacket = tspacket;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":5}],46:[function(require,module,exports){
+},{"buffer":6}],48:[function(require,module,exports){
 //Jordi Cenzano 2017
 const binparser = require('binary-parser').Parser;
 
@@ -9586,4 +9797,4 @@ class tspacketParser {
 //Export class
 module.exports.tspacketParser = tspacketParser;
 
-},{"binary-parser":2}]},{},[42]);
+},{"binary-parser":2}]},{},[43]);

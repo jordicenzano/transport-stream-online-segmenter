@@ -2,7 +2,9 @@
 
 This is a tool that allows you to create an HLS chunklist from any transport stream file.
 All the process is done inside the browser, so the TS files are NOT uploaded anywhere making segmentation process fast and secure.
-Taking advantage of HLS v6 we can generate a byte range HLS chunklist that prevents you to modify / split your TS file
+Taking advantage of HLS v6 we can generate a byte range HLS chunklist that prevents you to modify / split your TS file.
+
+You can also execute the same segmenter in the CLI (nodeJS), and you can also use it to segment a TS TCP stream, in that case the chunks are also saved to the disc.
 
 # Usage in the browser
 
@@ -22,7 +24,7 @@ You can execute `./transport-stream-segmenter-cli.js` (without arguments) to get
 
 # Usage in the console to process TCP streams
 
-It provides a server TCP socket and generates the a live EVENT chunkist adding in real time the chunks. See Note 2 if you want to test it.
+It provides a server TCP socket to insgest the TS TCP stream, and it generates a live EVENT chunklist, it also saves the chunk files indicating them as growing files, ideal if you want to implement [LHLS](https://medium.com/@periscopecode/introducing-lhls-media-streaming-eb6212948bef). See Note 2 if you want to test it.
 
 * Use the following syntax, see note 2 for testing:
 ```

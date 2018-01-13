@@ -1,9 +1,23 @@
+
+const fs = require('fs');
+const path = require('path');
 const tspck = require('./tspacket.js');
 
 "use strict";
 
+const GHOST_PREFIX_DEFAULT = ".growing_";
+const FILE_NUMBER_LENGTH_DEFAULT = 5;
+const FILE_CHUNK_EXTENSION_DEFAULT = ".ts";
+
+Number.prototype.pad = function(size) {
+    let s = String(this);
+    while (s.length < (size || 2)) {s = "0" + s;}
+    return s;
+};
+
 class hls_chunk {
-    constructor(index) {
+
+    constructor(index, options) {
 
         this.index = index;
 
@@ -15,10 +29,61 @@ class hls_chunk {
         this.first_pcr = -1;
         this.last_pcr = -1;
         this.duration_s = 0;
+
+        this.is_writing_chunks = false;
+
+        if ((options != null) && (typeof (options) === 'object')) {
+            this.is_writing_chunks = true;
+
+            let ghost_prefix = GHOST_PREFIX_DEFAULT;
+            if (("ghost_prefix" in options) && (typeof(options.ghost_prefix) === 'string'))
+                ghost_prefix = options.ghost_prefix;
+
+            let file_number_length = FILE_NUMBER_LENGTH_DEFAULT;
+            if (("file_number_length" in options) && (typeof(options.file_number_length) === 'number'))
+                file_number_length = options.file_number_length;
+
+            let file_extension = FILE_CHUNK_EXTENSION_DEFAULT;
+            if (("file_extension" in options) && (typeof(options.file_extension) === 'string'))
+                file_extension = options.file_extension;
+
+            this.filename = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension);
+            this.filename_ghost = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension, ghost_prefix);
+
+            //Create ghost file indicting is growing
+            fs.writeFileSync(this.filename_ghost, "");
+
+            //Create growing file
+            this.curr_stream = null;
+        }
+    }
+
+    close() {
+        if (this.is_writing_chunks === true) {
+            if (this.curr_stream != null) {
+                this.curr_stream.end();
+                this.curr_stream = null;
+            }
+
+            if (this.filename_ghost != null) {
+                if (fs.existsSync(this.filename_ghost))
+                    fs.unlinkSync(this.filename_ghost);
+            }
+
+        }
     }
 
     addTSPacket(ts_packet) {
         this.addTSPacketInfo(ts_packet.getInfo());
+
+        if (this.is_writing_chunks === true) {
+            if (this.curr_stream === null) {
+                //Create growing file
+                this.curr_stream = fs.createWriteStream(this.filename);
+            }
+
+            this.curr_stream.write(ts_packet.getBuffer());
+        }
     }
 
     addTSPacketInfo(ts_packet_info) {
@@ -70,6 +135,25 @@ class hls_chunk {
 
     getDuration() {
         return this.duration_s;
+    }
+
+    getFileName() {
+        return this.filename;
+    }
+
+    getFileNameGhost() {
+        return this.filename_ghost;
+    }
+
+    _createFilename(base_path, chunk_base_file_name, index, file_number_length, file_extension, ghost_prefix) {
+        let ret = "";
+
+        if (typeof (ghost_prefix) === 'string')
+            ret = path.join(base_path, ghost_prefix + chunk_base_file_name + index.pad(file_number_length) + file_extension);
+        else
+            ret = path.join(base_path, chunk_base_file_name + index.pad(file_number_length) + file_extension);
+
+        return ret;
     }
 }
 

@@ -3,6 +3,7 @@
 //Jordi Cenzano 2017
 
 const fs = require('fs');
+const path = require('path');
 const chkGenerator = require('./src/chunklistGenerator.js');
 
 "use strict";
@@ -21,8 +22,10 @@ let target_dur_s = 4; //Default
 if (process.argv.length > 4)
     target_dur_s = Number.parseInt(process.argv[4], 10);
 
+const base_path = path.dirname(out_chunklist_file);
+
 //Instantiate class
-let segmenter = new chkGenerator.chunklistGenerator(input_ts_file, target_dur_s);
+let segmenter = new chkGenerator.chunklistGenerator(false, base_path, input_ts_file, target_dur_s);
 
 //Create file reader
 const readStream = fs.createReadStream(input_ts_file);

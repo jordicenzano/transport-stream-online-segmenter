@@ -23,7 +23,7 @@ function chunklistGeneratorBrowser(is_url, source, target_duration, final_callba
     }
 
     //Instantiate class
-    let segmenter = new chkGenerator.chunklistGenerator(file_name_url, target_duration);
+    let segmenter = new chkGenerator.chunklistGenerator(false, null, file_name_url, target_duration);
 
     processFunction(source, function (err, data_chunk, read, total) {
         if (err) {
