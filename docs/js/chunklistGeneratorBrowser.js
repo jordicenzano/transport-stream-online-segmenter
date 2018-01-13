@@ -8567,7 +8567,7 @@ const TS_PACKET_SIZE = 188;
 // Constructor
 class chunklistGenerator {
 
-    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type) {
+    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type, live_window_size) {
 
         //Create packet parsers. According to the docs it is compiled at first call, so we can NOT create it inside packet (time consuming)
         this.tspckParser = new tspckParserMod.tspacketParser().getPacketParser();
@@ -8579,7 +8579,14 @@ class chunklistGenerator {
             if (chunklist_type === hlsChunklist.enChunklistType.LIVE_EVENT) this.chunklist_type = hlsChunklist.enChunklistType.LIVE_EVENT;else if (chunklist_type === hlsChunklist.enChunklistType.LIVE_WINDOW) this.chunklist_type = hlsChunklist.enChunklistType.LIVE_WINDOW;
         }
 
-        this.chunklist_generator = new hlsChunklist.hls_chunklist(path.basename(chunk_base_filename), { is_splitting_chunks: is_creating_chunks, is_using_relative_path: true });
+        let chunklist_options = {
+            is_splitting_chunks: is_creating_chunks,
+            is_using_relative_path: true
+        };
+
+        if (typeof live_window_size === 'number') chunklist_options.live_window_size = live_window_size;
+
+        this.chunklist_generator = new hlsChunklist.hls_chunklist(this.chunklist_type, path.basename(chunk_base_filename), chunklist_options);
 
         this.result_chunklist = "";
 
@@ -8634,7 +8641,7 @@ class chunklistGenerator {
             //Process remaining TS packets
             this._process_data_finish();
 
-            this.result_chunklist = this._generateChunklist(true);
+            this.result_chunklist = this.chunklist_generator.toString(true);
         } catch (err) {
             return callback(err, null);
         }
@@ -8652,29 +8659,19 @@ class chunklistGenerator {
         this.on_chunk_data = null;
     }
 
-    _generateChunklist(is_end) {
-
-        //Set media init data
-        this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_info);
-
-        //Set chunks data
-        this.chunklist_generator.setChunksInfo(this.segmenter_data.chunks_info);
-
-        //Create HLS chunklist string
-        return this.chunklist_generator.toString(this.chunklist_type, is_end);
-    }
-
     _createNewChunk(is_last) {
+        if (this.segmenter_data.chunk != null) {
+            this.segmenter_data.chunk.close();
+
+            //Add chunk info
+            this.chunklist_generator.addChunkInfo(this.segmenter_data.chunk);
+        }
 
         //Send event
         if (this.on_chunk !== null) {
             //Generate chunklist
-            let temp_chunklist = this._generateChunklist(false);
-
-            this.on_chunk(this.on_chunk_data, temp_chunklist);
+            this.on_chunk(this.on_chunk_data, this.chunklist_generator.toString(false));
         }
-
-        if (this.segmenter_data.chunk != null) this.segmenter_data.chunk.close();
 
         let chunk_options = null;
         if (this.segmenter_data.config.is_creating_chunks) {
@@ -8700,6 +8697,8 @@ class chunklistGenerator {
     }
 
     _getMediaInfoData(is_creating_chunks, media_info, ts_packet) {
+        let ret = false;
+
         if (ts_packet.isPAT()) {
             let pmtsData = ts_packet.getPMTsIDs();
             if (Array.isArray(pmtsData) && pmtsData.length > 1) {
@@ -8727,6 +8726,10 @@ class chunklistGenerator {
         }
 
         if (is_creating_chunks && media_info.getIsSet() && !media_info.getIsSaved()) media_info.save();
+
+        if (media_info.getIsSet()) ret = true;
+
+        return ret;
     }
 
     _process_data_chunk(data) {
@@ -8780,7 +8783,14 @@ class chunklistGenerator {
                         }
 
                         //Do not save chunks until media init is set
-                        if (this.segmenter_data.media_info.getIsSet() === false) this._getMediaInfoData(this.segmenter_data.config.is_creating_chunks, this.segmenter_data.media_info, this.segmenter_data.ts_packet);else this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                        if (this.segmenter_data.media_info.getIsSet() === false) {
+                            if (this._getMediaInfoData(this.segmenter_data.config.is_creating_chunks, this.segmenter_data.media_info, this.segmenter_data.ts_packet) === true) {
+                                //Set media init data
+                                this.chunklist_generator.setMediaIniInfo(this.segmenter_data.media_info);
+                            }
+                        } else {
+                            this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                        }
 
                         //New packet
                         this.segmenter_data.ts_packet = new tspck.tspacket(this.segmenter_data.packet_size, this.tspckParser, this.tspckPATParser, this.tspckPMTParser);
@@ -9174,33 +9184,43 @@ const enChunklistType = {
     LIVE_WINDOW: "window"
 };
 
-//TODO: Implement live window
+const DEFAULT_LIVE_WINDOW_SIZE = 3;
 
 class hls_chunklist {
-    constructor(media_file_url, options) {
+    constructor(chunklist_type, media_file_url, options) {
 
-        this.chunks_info = null;
+        this.chunks_info = [];
         this.media_info = null;
 
         this.target_duration_s = -1;
+        this.media_sequence = 0;
         this.media_file_url = media_file_url;
         this.is_splitting_chunks = false;
         this.is_using_relative_path = false;
+
+        this.chunklist_type = chunklist_type;
+        this.live_window_size = DEFAULT_LIVE_WINDOW_SIZE;
 
         if (typeof options === 'object') {
             if (options.is_splitting_chunks === true) this.is_splitting_chunks = true;
 
             if (options.is_using_relative_path === true) this.is_using_relative_path = true;
+
+            if (typeof options.live_window_size === 'number') this.live_window_size = options.live_window_size;
         }
     }
 
-    setChunksInfo(chunks_info) {
-        this.chunks_info = chunks_info;
+    addChunkInfo(chunk) {
+        this.chunks_info.push(chunk);
 
-        for (let i = 0; i < this.chunks_info.length; i++) {
-            let chunk_info = this.chunks_info[i];
+        if (this.chunklist_type === enChunklistType.LIVE_WINDOW) {
+            while (this.chunks_info.length > this.live_window_size) {
+                let removed_chunk = this.chunks_info.shift();
 
-            this.target_duration_s = Math.max(this.target_duration_s, Math.ceil(chunk_info.getDuration()));
+                this.media_sequence++;
+
+                console.log("Removed chunk index " + removed_chunk.getIndex() + " from the chunklist");
+            }
         }
     }
 
@@ -9208,23 +9228,19 @@ class hls_chunklist {
         this.media_info = media_info;
     }
 
-    toString(type, is_closed) {
+    toString(is_closed) {
         if (this.chunks_info === null || this.media_info === null || this.media_info.getIsSet() === false) return null;
 
-        let chunklist_type = enChunklistType.VOD;
-        let is_adding_endlist = true;
-        if (typeof type === 'string' && type === enChunklistType.LIVE_EVENT) chunklist_type = enChunklistType.LIVE_EVENT;
-
-        if (typeof is_closed === 'boolean') is_adding_endlist = is_closed;
-
         let ret = [];
+
+        this.target_duration_s = this._calcTargetDuration();
 
         ret.push('#EXTM3U');
         ret.push('#EXT-X-TARGETDURATION:' + this.target_duration_s.toString());
         ret.push('#EXT-X-VERSION:6');
-        ret.push('#EXT-X-MEDIA-SEQUENCE:0');
+        ret.push('#EXT-X-MEDIA-SEQUENCE:' + this.media_sequence);
 
-        if (chunklist_type === enChunklistType.VOD) ret.push('#EXT-X-PLAYLIST-TYPE:VOD');else if (chunklist_type === enChunklistType.LIVE_EVENT) ret.push('#EXT-X-PLAYLIST-TYPE:EVENT');
+        if (this.chunklist_type === enChunklistType.VOD) ret.push('#EXT-X-PLAYLIST-TYPE:VOD');else if (this.chunklist_type === enChunklistType.LIVE_EVENT) ret.push('#EXT-X-PLAYLIST-TYPE:EVENT');
 
         if (this.is_splitting_chunks === false) {
             ret.push('#EXT-X-MAP:URI="' + this.media_file_url + '",BYTERANGE="' + (this.media_info.getLastBytePos() - this.media_info.getFirstBytePos()) + '@' + this.media_info.getFirstBytePos() + '"');
@@ -9248,9 +9264,21 @@ class hls_chunklist {
             }
         }
 
-        if (is_adding_endlist) ret.push('#EXT-X-ENDLIST');
+        if (is_closed === true) ret.push('#EXT-X-ENDLIST');
 
         return ret.join('\n');
+    }
+
+    _calcTargetDuration() {
+        let ret = 0;
+
+        for (let i = 0; i < this.chunks_info.length; i++) {
+            let chunk_info = this.chunks_info[i];
+
+            ret = Math.max(ret, Math.ceil(chunk_info.getDuration()));
+        }
+
+        return ret;
     }
 }
 
