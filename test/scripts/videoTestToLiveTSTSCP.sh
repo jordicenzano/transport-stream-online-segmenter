@@ -15,8 +15,8 @@ fi
 
 VIDEO_BITRATE=$1
 DURATION_S=$2
-ADDR=$3
-PORT=$4
+PORT=$3
+ADDR=$4
 
 #Select font path based in OS
 if [[ "$OSTYPE" == "linux-gnu" ]]; then

@@ -44,6 +44,7 @@ describe('chunklist-generator', function() {
                 });
             });
 
+            //Check chunklist
             readFileStream.on("end", function() {
                 segmenter.processDataEnd(function (err, data) {
                     assert.equal(err, null);
@@ -99,6 +100,7 @@ test_320x200a30fps.ts
                 segmenter.processDataEnd(function (err, data) {
                     assert.equal(err, null);
 
+                    //Check chunklist
                     assert.equal(data,
                         `#EXTM3U
 #EXT-X-TARGETDURATION:4
@@ -114,7 +116,14 @@ test_with_chunks_event_00001.ts
 test_with_chunks_event_00002.ts
 #EXT-X-ENDLIST`);
 
+                    //Save chunklist (for testing purposes)
                     fs.writeFileSync(chunklist_filename, data);
+
+                    //Check chunk files
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + 'init.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00000.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00001.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00002.ts')), true);
 
                     done();
                 });
@@ -123,8 +132,6 @@ test_with_chunks_event_00002.ts
     });
 
     describe('generate a live window (2 chunks) chunklist and chunks from file', function () {
-
-        //TODO: Add check for files & no 0 size
 
         it('ffmpeg generated ts', function (done) {
             let chunk_base_filename = 'test_with_chunks_live_';
@@ -149,6 +156,7 @@ test_with_chunks_event_00002.ts
                 segmenter.processDataEnd(function (err, data) {
                     assert.equal(err, null);
 
+                    //Check chunklist
                     assert.equal(data,
                         `#EXTM3U
 #EXT-X-TARGETDURATION:4
@@ -161,7 +169,13 @@ test_with_chunks_live_00001.ts
 test_with_chunks_live_00002.ts
 #EXT-X-ENDLIST`);
 
+                    //Save chunklist (for testing purposes)
                     fs.writeFileSync(chunklist_filename, data);
+
+                    //Check chunk files
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + 'init.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00001.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00002.ts')), true);
 
                     done();
                 });

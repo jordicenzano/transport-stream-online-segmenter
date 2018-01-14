@@ -11,8 +11,8 @@ const chkGenerator = require('./src/chunklistGenerator.js');
 
 // Check input arguments
 if (process.argv.length < 4) {
-    console.log('Use: ./transport-stream-segmenter-tcp.js PORT BASE_OUTPUT_PATH CHUNKBASE_FILENAME CHUNKLIST_FILENAME [TARGET_DUR_S] [BIND_ADDRESS]');
-    console.log('Example: ./transport-stream-segmenter-tcp.js 5000 /tmp media_ out.m3u8 4 127.0.0.1');
+    console.log('Use: ./transport-stream-segmenter-tcp.js PORT BASE_OUTPUT_PATH CHUNK_BASE_FILENAME CHUNKLIST_FILENAME [TARGET_DUR_S] [BIND_ADDRESS] [CHUNKLIST_TYPE]');
+    console.log('Example: ./transport-stream-segmenter-tcp.js 5000 /tmp media_ out.m3u8 4 127.0.0.1 event');
     process.exit(1);
 }
 
@@ -26,9 +26,15 @@ let target_dur_s = 4; //Default
 if (process.argv.length > 6)
     target_dur_s = Number.parseInt(process.argv[6], 10);
 
-let bind_addr = "127.0.0.1";
+let bind_addr = "";
 if (process.argv.length > 7)
     bind_addr = process.argv[7];
+
+let chunklist_type = chkGenerator.enChunklistType.LIVE_WINDOW;
+if (process.argv.length > 8) {
+    if (process.argv[8] === chkGenerator.enChunklistType.LIVE_EVENT)
+        chunklist_type = chkGenerator.enChunklistType.LIVE_EVENT;
+}
 
 //Chunklist full path
 const out_chunklist_file = path.join(base_path, chunklist_file_name);
@@ -50,8 +56,7 @@ const server = net.createServer(function(socket) {
     console.log("Connected: " + socket.name);
 
     //Instantiate class
-    //TODO: pass dir, chunk base name, and modify chkGenerator to save files
-    let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chkGenerator.enChunklistType.LIVE_WINDOW);
+    let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chunklist_type);
 
     //Add chunk listener
     segmenter.setOnChunkListerer(function (that, chunklist) {
@@ -86,7 +91,11 @@ const server = net.createServer(function(socket) {
     });
 });
 
-server.listen(port, bind_addr);
-
-console.log("Server listening on port: " + port.toString() + ". BindAddr: " + bind_addr);
-
+if (bind_addr != "") {
+    server.listen(port, bind_addr);
+    console.log("Server listening on port: " + port.toString());
+}
+else {
+    server.listen(port);
+    console.log("Server listening on port: " + port.toString() + ". BindAddr: " + bind_addr);
+}

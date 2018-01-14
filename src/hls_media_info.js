@@ -86,19 +86,8 @@ class hls_media_info {
 
     save() {
         if (this.filename != null) {
-            if (this.getIsSet()) {
-                let fw = fs.createWriteStream(this.filename);
-
-                for (let i = 0; i < this.ts_packets.length; i++) {
-                    let ts_packet = this.ts_packets[i];
-
-                    fw.write(ts_packet.getBuffer());
-                }
-
-                fw.end();
-
+            if (this._savePacketsToFile(this.filename) === true)
                 this.is_saved = true;
-            }
         }
     }
 
@@ -108,6 +97,26 @@ class hls_media_info {
 
     getIsSaved() {
         return this.is_saved;
+    }
+
+    _savePacketsToFile(filename) {
+        let ret = false;
+
+        if (this.getIsSet()) {
+            let fw = fs.createWriteStream(filename);
+
+            for (let i = 0; i < this.ts_packets.length; i++) {
+                let ts_packet = this.ts_packets[i];
+
+                fw.write(ts_packet.getBuffer());
+            }
+
+            fw.end();
+
+            ret = true;
+        }
+
+        return ret;
     }
 }
 
