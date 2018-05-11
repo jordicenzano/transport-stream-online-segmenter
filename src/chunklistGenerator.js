@@ -116,17 +116,14 @@ class chunklistGenerator {
     }
 
     _createNewChunk(is_last) {
-        if (this.segmenter_data.chunk != null) {
-            this.segmenter_data.chunk.close();
-
-            //Add chunk info
-            this.chunklist_generator.addChunkInfo(this.segmenter_data.chunk);
+        // Close last written chunk
+        if (this.segmenter_data.write_chunk != null) {
+            this.segmenter_data.write_chunk.close();
         }
 
         //Send event
         if (this.on_chunk !== null) {
             // Generate chunklist
-
             this.on_chunk(this.on_chunk_data, this.chunklist_generator.toString(false));
         }
 
@@ -140,6 +137,10 @@ class chunklistGenerator {
 
         if ((typeof (is_last) === 'undefined') || (is_last === false)) {
             this.segmenter_data.chunk = new hlsChunk.hls_chunk(this.segmenter_data.segment_index, chunk_options);
+            // TODO make this a real duration?
+            this.segmenter_data.chunk.duration_s = 4;
+            this.chunklist_generator.addChunkInfo(this.segmenter_data.chunk);
+
             this.segmenter_data.segment_index++;
         }
     }
@@ -256,12 +257,11 @@ class chunklistGenerator {
 
                             this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
 
-                            this._createNewChunk();
-
                             const nextWriteIndex = this.segmenter_data.write_chunk.index + 1;
 
-                            this.segmenter_data.write_chunk = this.chunklist_generator.chunks_info[nextWriteIndex];
+                            this._createNewChunk();
 
+                            this.segmenter_data.write_chunk = this.chunklist_generator.chunks_info[nextWriteIndex];
                         }
 
                         //Do not save chunks until media init is set
@@ -273,11 +273,6 @@ class chunklistGenerator {
                         }
                         else {
                             this.segmenter_data.write_chunk.addTSPacket(this.segmenter_data.ts_packet);
-                        }
-
-                        // Close last written chunk
-                        if (this.segmenter_data.write_chunk != null) {
-                            this.segmenter_data.write_chunk.close();
                         }
 
                         //New packet

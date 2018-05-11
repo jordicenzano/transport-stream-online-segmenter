@@ -57,7 +57,7 @@ const server = net.createServer(function(socket) {
 
     //Instantiate class
     let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chunklist_type);
-    const numAdvanceChunks = 4;
+    const numAdvanceChunks = 3;
     let forcePush = false;
 
     // Creating blank chunks
@@ -67,6 +67,7 @@ const server = net.createServer(function(socket) {
         }
 
         segmenter.chunklist_generator.setMediaIniInfo(segmenter.segmenter_data.media_info);
+
         segmenter._createNewChunk(false);
 
         segmenter.segmenter_data.chunk.index = i;
@@ -84,6 +85,7 @@ const server = net.createServer(function(socket) {
 
 
     }
+
     saveChunklist(out_chunklist_file, segmenter.chunklist_generator.toString(false));
 
     //Add chunk listener
