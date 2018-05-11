@@ -57,6 +57,34 @@ const server = net.createServer(function(socket) {
 
     //Instantiate class
     let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chunklist_type);
+    const numAdvanceChunks = 4;
+    let forcePush = false;
+
+    // Creating blank chunks
+    for (let i = 0; i < numAdvanceChunks; i++) {
+        if (segmenter.segmenter_data.chunk === null) {
+            forcePush = true;
+        }
+
+        segmenter.chunklist_generator.setMediaIniInfo(segmenter.segmenter_data.media_info);
+        segmenter._createNewChunk(false);
+
+        segmenter.segmenter_data.chunk.index = i;
+
+        if (i === 0) {
+            segmenter.first_advance_chunk = segmenter.segmenter_data.chunk;
+            segmenter.advance_chunks_filled = false;
+        }
+
+        // Forcible push for the first chunk
+        if (forcePush) {
+            segmenter.segmenter_data.chunks_info.push(segmenter.segmenter_data.chunk);
+            forcePush = false;
+        }
+
+
+    }
+    saveChunklist(out_chunklist_file, segmenter.chunklist_generator.toString(false));
 
     //Add chunk listener
     segmenter.setOnChunkListerer(function (that, chunklist) {

@@ -66,6 +66,8 @@ class chunklistGenerator {
             //Obj used for parsing
             ts_packet: null,
             chunk: null,
+            // chunk that is being written to
+            write_chunk: null,
 
             //Media init info (PAT + PMT)
             media_info: new hls_media_info.hls_media_info(),
@@ -123,7 +125,8 @@ class chunklistGenerator {
 
         //Send event
         if (this.on_chunk !== null) {
-            //Generate chunklist
+            // Generate chunklist
+
             this.on_chunk(this.on_chunk_data, this.chunklist_generator.toString(false));
         }
 
@@ -201,8 +204,15 @@ class chunklistGenerator {
         if (this.segmenter_data.ts_packet === null)
             this.segmenter_data.ts_packet = new tspck.tspacket(this.segmenter_data.packet_size, this.tspckParser, this.tspckPATParser, this.tspckPMTParser);
 
-        if (this.segmenter_data.chunk === null)
+        if (this.advance_chunks_filled === false && this.first_advance_chunk) {
+
+            this.segmenter_data.write_chunk = this.first_advance_chunk;
+            this.advance_chunks_filled = true;
+        }
+
+        if (this.segmenter_data.chunk === null) {
             this._createNewChunk();
+        }
 
         if (data.length <= this.segmenter_data.bytes_next_sync) {
             this.segmenter_data.bytes_next_sync = this.segmenter_data.bytes_next_sync - data.length;
@@ -215,7 +225,6 @@ class chunklistGenerator {
             let bexit = false;
             while (bexit === false) {
                 if (data[sync_index] === 0x47) {
-
                     //New packet detected
                     curr_packet_end = sync_index;
                     this.segmenter_data.ts_packet.addDataWithPos(this.segmenter_data.curr_file_pos_byte, data, curr_packet_start, curr_packet_end);
@@ -230,7 +239,8 @@ class chunklistGenerator {
 
                         //Is next segment needed?
                         let next_segment = false;
-                        if (this.segmenter_data.chunk.getDuration() >= (this.segmenter_data.config.target_segment_duration_s - this.segmenter_data.config.target_segment_duration_tolerance)) {
+                        if (this.segmenter_data.write_chunk.getDuration() >= (this.segmenter_data.config.target_segment_duration_s - this.segmenter_data.config.target_segment_duration_tolerance)) {
+
                             if (this.segmenter_data.config.break_at_video_idr) {
                                 if (is_random_access_point)
                                     next_segment = true;
@@ -247,6 +257,11 @@ class chunklistGenerator {
                             this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
 
                             this._createNewChunk();
+
+                            const nextWriteIndex = this.segmenter_data.write_chunk.index + 1;
+
+                            this.segmenter_data.write_chunk = this.chunklist_generator.chunks_info[nextWriteIndex];
+
                         }
 
                         //Do not save chunks until media init is set
@@ -257,7 +272,12 @@ class chunklistGenerator {
                             }
                         }
                         else {
-                            this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                            this.segmenter_data.write_chunk.addTSPacket(this.segmenter_data.ts_packet);
+                        }
+
+                        // Close last written chunk
+                        if (this.segmenter_data.write_chunk != null) {
+                            this.segmenter_data.write_chunk.close();
                         }
 
                         //New packet

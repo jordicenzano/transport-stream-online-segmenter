@@ -32,8 +32,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     FONT_PATH='/Library/Fonts/Arial.ttf'
 fi
 
-ffmpeg -f avfoundation -pix_fmt uyvy422 -framerate 30 -i "default" \
+ffmpeg -f avfoundation -pix_fmt uyvy422 -framerate 30 -i "$CAM" \
 -vf "drawtext=fontfile=$FONT_PATH: text=\'Local time %{localtime\: %Y\/%m\/%d %H.%M.%S} (%{n})\': x=10: y=10: fontsize=16: fontcolor=white: box=1: boxcolor=0x00000099" \
--pix_fmt yuv420p -c:v libx264 -b:v ${VIDEO_BITRATE}k -g 30 -x264opts "keyint=120:min-keyint=120:no-scenecut" -profile:v baseline -preset veryfast \
+-pix_fmt yuv420p -c:v libx264 -b:v ${VIDEO_BITRATE}k -g 1 -x264opts "keyint=1:min-keyint=1:no-scenecut" -profile:v baseline -preset veryfast \
 -c:a libfdk_aac -b:a 96k \
 -f mpegts "tcp://$ADDR:$PORT"
