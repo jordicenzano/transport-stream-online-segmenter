@@ -158,7 +158,7 @@ class chunklistGenerator {
         //Close current chunk
         if (chunk != null) {
             chunk.close();
-            console.log("Close chunk: " + this._chunkInfoToString(chunk));
+            console.log("Closed chunk: " + this._chunkInfoToString(chunk));
 
             ret = true;
         }

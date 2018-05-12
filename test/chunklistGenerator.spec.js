@@ -189,9 +189,55 @@ test_with_chunks_live_00002.ts
             let chunk_base_filename = 'test_lhls_with_chunks_live_';
             let chunklist_filename = path.join(out_path, path.parse(input_vod_file_name).name + '_live.m3u8');
 
-            let segmenter = new underTest.chunklistGenerator(true, out_path, chunk_base_filename, 4, underTest.enChunklistType.LIVE_WINDOW, 2, 3);
+            let segmenter = new underTest.chunklistGenerator(true, out_path, chunk_base_filename, 4, underTest.enChunklistType.LIVE_WINDOW, 3, 3);
 
             let readFileStream = new fs.createReadStream(input_vod_file_name);
+
+            //Add chunk listener
+            let chunklist_num = 0;
+            segmenter.setOnChunkListerer(function (that, chunklist) {
+                if (chunklist !== null) {
+                    if (chunklist_num === 0) {
+                        assert.equal(chunklist, `#EXTM3U
+#EXT-X-TARGETDURATION:4
+#EXT-X-VERSION:6
+#EXT-X-MEDIA-SEQUENCE:1
+#EXT-X-MAP:URI="test_lhls_with_chunks_live_init.ts"
+#EXTINF:4,
+test_lhls_with_chunks_live_00001.ts
+#EXTINF:4,
+test_lhls_with_chunks_live_00002.ts
+#EXTINF:4,
+test_lhls_with_chunks_live_00003.ts`);
+
+                        //Check chunk files
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + 'init.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00001.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00002.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00003.ts')), true);
+                    }
+                    else if (chunklist_num === 1) {
+                        assert.equal(chunklist, `#EXTM3U
+#EXT-X-TARGETDURATION:4
+#EXT-X-VERSION:6
+#EXT-X-MEDIA-SEQUENCE:2
+#EXT-X-MAP:URI="test_lhls_with_chunks_live_init.ts"
+#EXTINF:4,
+test_lhls_with_chunks_live_00002.ts
+#EXTINF:4,
+test_lhls_with_chunks_live_00003.ts
+#EXTINF:4,
+test_lhls_with_chunks_live_00004.ts`);
+
+                        //Check chunk files
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + 'init.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00002.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00003.ts')), true);
+                        assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00004.ts')), true);
+                    }
+                    chunklist_num++;
+                }
+            }, this);
 
             readFileStream.on("error", function() {
                 assert.fail('error reading the file');
@@ -208,13 +254,15 @@ test_with_chunks_live_00002.ts
                 segmenter.processDataEnd(function (err, data) {
                     assert.equal(err, null);
 
-                    //Check chunklist
+                    //Check final chunklist
                     assert.equal(data,
                         `#EXTM3U
 #EXT-X-TARGETDURATION:4
 #EXT-X-VERSION:6
-#EXT-X-MEDIA-SEQUENCE:3
+#EXT-X-MEDIA-SEQUENCE:2
 #EXT-X-MAP:URI="test_lhls_with_chunks_live_init.ts"
+#EXTINF:4,
+test_lhls_with_chunks_live_00002.ts
 #EXTINF:4,
 test_lhls_with_chunks_live_00003.ts
 #EXTINF:4,
