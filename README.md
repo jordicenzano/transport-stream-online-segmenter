@@ -4,12 +4,13 @@ This is a tool that allows you to create an HLS chunklist from any transport str
 For the online version all the process is done inside the browser, so the input TS file are NOT uploaded anywhere making segmentation process fast and secure.
 Taking advantage of HLS v6 we can generate a byte range HLS chunklist that prevents you to modify / split your TS file.
 
-You can also execute the same segmenter in the CLI (nodeJS), and then you can also use it to segment a live TS TCP stream or a local TS file, in that case the chunks can be generated and saved to the local disc.
+You can also execute the same segmenter in the CLI (nodeJS), and then segment a live TS TCP stream or a local TS file, in this case the chunks can be generated and saved to the local disc. 
+If you segment a TS TCP stream you can activate LHLS segementation (see: [lhls-media-streaming](https://medium.com/@periscopecode/introducing-lhls-media-streaming-eb6212948bef)). See [note 1](#note-1) if you want to test LHLS.
 
 # Usage in the browser
 
 * Click here [online-segmenter](https://jordicenzano.github.io/transport-stream-online-segmenter/)
-* Select the desired target duration and select a .ts file from your local computer (see note 1), or put a URL of any ts file (remember should have a proper CORS policy)
+* Select the desired target duration and select a .ts file from your local computer (see [note 2](#note-2) to generate a file), or put a URL of any ts file (remember should have a proper CORS policy)
 * The .ts file will be processed in YOUR browser and the resulting HLS v6 chunklist displayed
 
 ## Testing the results:
@@ -19,7 +20,7 @@ You can also execute the same segmenter in the CLI (nodeJS), and then you can al
 
 # Usage in the console to process files
 
-* Use the following syntax, see note 1 or testing:
+* Use the following syntax (see [note 3](#note-3) on how to generate a TS stream):
 ```
 ./transport-stream-segmenter-cli.js /your_path/input.ts /your_path/chunklist.m3u8
 ```
@@ -35,7 +36,12 @@ It provides a server TCP socket to ingest a TS TCP stream, and it generates a li
 ```
 You can execute `./transport-stream-segmenter-tcp.js` (without arguments) to get help about accepted parameters
 
-Note 1: If you do not have any ts file you can generate one by using `ffmpeg`:
+# Notes
+## Note 1: testing LHLS
+For LHLS you need a webserver that supports chunked transfer for growing files, see: [webserver-chunked-growingfiles](https://github.com/jordicenzano/webserver-chunked-growingfiles)
+
+## Note 2: Generating a TS file
+If you do not have any ts file you can generate one by using `ffmpeg`:
 ```
 ffmpeg -f lavfi -re -i testsrc=duration=10:size=320x200:rate=30 \
 -f lavfi -re -i sine=frequency=1000:duration=10:sample_rate=44100 \
@@ -44,6 +50,7 @@ ffmpeg -f lavfi -re -i testsrc=duration=10:size=320x200:rate=30 \
 -f mpegts demo.ts
 ```
 
+## Note 3: Generation a TS stream
 Note 2: If you do not have any encoder able to generate a TS TCP stream, you can execute the following script included in this repo (it uses `ffmpeg` behind the scenes):
 ```
 ./test/scripts/videoTestToLiveTSTSCP.sh 1000 120 9000 127.0.0.1
