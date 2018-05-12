@@ -28,12 +28,21 @@ class hls_chunk {
 
         this.first_pcr = -1;
         this.last_pcr = -1;
-        this.duration_s = 0;
+        this.duration_s = -1;
+        this.estimated_duration_s = -1;
 
         this.is_writing_chunks = false;
 
+        let is_creating_chunk_in_advance = false;
+
         if ((options != null) && (typeof (options) === 'object')) {
             this.is_writing_chunks = true;
+
+            //If we are passing estimated duration, let's create the chunk file in advance (probably LHLS)
+            if (("estimated_duration_s" in options) && (typeof (options.estimated_duration_s) === 'number')){
+                this.estimated_duration_s = options.estimated_duration_s;
+                is_creating_chunk_in_advance = true
+            }
 
             let ghost_prefix = GHOST_PREFIX_DEFAULT;
             if (("ghost_prefix" in options) && (typeof(options.ghost_prefix) === 'string'))
@@ -50,8 +59,12 @@ class hls_chunk {
             this.filename = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension);
             this.filename_ghost = this._createFilename(options.base_path, options.chunk_base_file_name, index, file_number_length, file_extension, ghost_prefix);
 
-            //Create ghost file indicting is growing
+            //Create ghost file indicating is growing
             fs.writeFileSync(this.filename_ghost, "");
+
+            if (is_creating_chunk_in_advance) {
+                this.curr_stream = fs.createWriteStream(this.filename);
+            }
 
             //Create growing file
             this.curr_stream = null;
@@ -131,6 +144,10 @@ class hls_chunk {
 
     getLastBytePos() {
         return this.last_byte_pos;
+    }
+
+    getEstimatedDuration() {
+       return this.estimated_duration_s;
     }
 
     getDuration() {

@@ -14,7 +14,7 @@ const TS_PACKET_SIZE = 188;
 // Constructor
 class chunklistGenerator {
 
-    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type, live_window_size) {
+    constructor(is_creating_chunks, base_path, chunk_base_filename, target_segment_dur_s, chunklist_type, live_window_size, lhls_advanced_chunks) {
 
         //Create packet parsers. According to the docs it is compiled at first call, so we can NOT create it inside packet (time consuming)
         this.tspckParser = new tspckParserMod.tspacketParser().getPacketParser();
@@ -29,9 +29,17 @@ class chunklistGenerator {
                 this.chunklist_type = hlsChunklist.enChunklistType.LIVE_WINDOW;
         }
 
+        this.lhls_advanced_chunks = 0;
+        this.is_lhls = false;
+        if ((Number.isInteger(lhls_advanced_chunks)) && (lhls_advanced_chunks > 0)) {
+            this.lhls_advanced_chunks = lhls_advanced_chunks;
+            this.is_lhls = true;
+        }
+
         let chunklist_options = {
             is_splitting_chunks: is_creating_chunks,
-            is_using_relative_path: true
+            is_using_relative_path: true,
+            is_lhls: this.is_lhls
         };
 
         if (typeof (live_window_size) === 'number')
@@ -63,15 +71,23 @@ class chunklistGenerator {
             segment_index: 0,
             bytes_next_sync: 0,
 
-            //Obj used for parsing
+            //Current TS packet
             ts_packet: null,
-            chunk: null,
+
+            //Chunks
+            _chunks: [],
 
             //Media init info (PAT + PMT)
             media_info: new hls_media_info.hls_media_info(),
 
-            //Chunks info
-            chunks_info: []
+            getCurrentChunk() {
+                let ret = null;
+
+                if (this._chunks.length > 0)
+                    ret = this._chunks[0];
+
+                return ret;
+            }
         };
 
         if (this.segmenter_data.config.is_creating_chunks)
@@ -113,12 +129,94 @@ class chunklistGenerator {
         this.on_chunk_data = null;
     }
 
-    _createNewChunk(is_last) {
-        if (this.segmenter_data.chunk != null) {
-            this.segmenter_data.chunk.close();
+    _closeAllChunks() {
+        let is_closed = false;
+        do {
 
-            //Add chunk info
-            this.chunklist_generator.addChunkInfo(this.segmenter_data.chunk);
+            is_closed = this._closeChunk(this.segmenter_data._chunks.shift());
+
+        } while (is_closed);
+    }
+
+    _addChunkToChunklist(chunk) {
+        this.chunklist_generator.addChunk(chunk);
+
+        console.log("Added chunk: " + this._chunkInfoToString(chunk));
+    }
+
+    _closeCurrentChunk() {
+        const chunk = this.segmenter_data.getCurrentChunk();
+
+        this._closeChunk(chunk);
+
+        return chunk;
+    }
+
+    _closeChunk(chunk) {
+        let ret = false;
+
+        //Close current chunk
+        if (chunk != null) {
+            chunk.close();
+            console.log("Close chunk: " + this._chunkInfoToString(chunk));
+
+            ret = true;
+        }
+
+        return ret;
+    }
+
+    _createNewChunk(is_lhls) {
+        let is_first_chunk = false;
+
+        const chunk_closed = this._closeCurrentChunk();
+        if (chunk_closed != null) {
+            //Add chunk info to chunklist after the chunk is closed if is NOT LHLS
+            if (!is_lhls) {
+                this._addChunkToChunklist(chunk_closed);
+            }
+        }
+        else {
+            is_first_chunk = true;
+        }
+
+        //Create chunk options
+        let chunk_options = null;
+        if (this.segmenter_data.config.is_creating_chunks) {
+            chunk_options = {
+                base_path: this.segmenter_data.config.base_path,
+                chunk_base_file_name: this.segmenter_data.config.chunk_base_filename
+            };
+
+            if (is_lhls) {
+                //Add the estimated time if LHLS is active
+                chunk_options.estimated_duration_s = this.segmenter_data.config.target_segment_duration_s;
+            }
+        }
+
+        //Create chunks
+        let chunks_to_create = 1;
+        if (is_lhls) {
+            if (is_first_chunk) {
+                chunks_to_create = this.lhls_advanced_chunks;
+            }
+        }
+
+        //Create new chunks
+        for (let n = 0; n < chunks_to_create; n++) {
+            const chunk_new = new hlsChunk.hls_chunk(this.segmenter_data.segment_index, chunk_options);
+            this.segmenter_data._chunks.push(chunk_new);
+            this.segmenter_data.segment_index++;
+
+            //Add chunks to chunklist at creation time for LHLS
+            if (is_lhls) {
+                this._addChunkToChunklist(chunk_new);
+            }
+        }
+
+        //Remove oldest chunk
+        if (this.segmenter_data._chunks.length > chunks_to_create) {
+                this.segmenter_data._chunks.shift();
         }
 
         //Send event
@@ -126,28 +224,23 @@ class chunklistGenerator {
             //Generate chunklist
             this.on_chunk(this.on_chunk_data, this.chunklist_generator.toString(false));
         }
+    }
 
-        let chunk_options = null;
-        if (this.segmenter_data.config.is_creating_chunks) {
-            chunk_options = {
-                base_path: this.segmenter_data.config.base_path,
-                chunk_base_file_name: this.segmenter_data.config.chunk_base_filename
-            };
+    _chunkInfoToString(chunk) {
+        let ret = "";
+        if (chunk !== null) {
+            ret = "Index: " + chunk.getIndex().toString() + ". Packets: " + chunk.getNumTSPackets().toString() + ". Duration: " + chunk.getDuration().toString() + ". Estimated duration: " + chunk.getEstimatedDuration().toString();
         }
 
-        if ((typeof (is_last) === 'undefined') || (is_last === false)) {
-            this.segmenter_data.chunk = new hlsChunk.hls_chunk(this.segmenter_data.segment_index, chunk_options);
-            this.segmenter_data.segment_index++;
-        }
+        return ret;
     }
 
     _process_data_finish() {
-        //New chunk ***
-        console.log("Last segment!, Index: " + this.segmenter_data.chunk.getIndex().toString() + ". Packets: " + this.segmenter_data.chunk.getNumTSPackets().toString() + ". Time: " + this.segmenter_data.chunk.getDuration().toString());
+        //Send the the one currently processing to the chunlist
+        if (!this.is_lhls)
+            this._addChunkToChunklist(this.segmenter_data.getCurrentChunk());
 
-        this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
-
-        this._createNewChunk(true);
+        this._closeAllChunks(this.is_lhls);
     }
 
     _getMediaInfoData(is_creating_chunks, media_info, ts_packet) {
@@ -201,8 +294,8 @@ class chunklistGenerator {
         if (this.segmenter_data.ts_packet === null)
             this.segmenter_data.ts_packet = new tspck.tspacket(this.segmenter_data.packet_size, this.tspckParser, this.tspckPATParser, this.tspckPMTParser);
 
-        if (this.segmenter_data.chunk === null)
-            this._createNewChunk();
+        if (this.segmenter_data.getCurrentChunk() === null)
+            this._createNewChunk(this.is_lhls);
 
         if (data.length <= this.segmenter_data.bytes_next_sync) {
             this.segmenter_data.bytes_next_sync = this.segmenter_data.bytes_next_sync - data.length;
@@ -230,7 +323,7 @@ class chunklistGenerator {
 
                         //Is next segment needed?
                         let next_segment = false;
-                        if (this.segmenter_data.chunk.getDuration() >= (this.segmenter_data.config.target_segment_duration_s - this.segmenter_data.config.target_segment_duration_tolerance)) {
+                        if (this.segmenter_data.getCurrentChunk().getDuration() >= (this.segmenter_data.config.target_segment_duration_s - this.segmenter_data.config.target_segment_duration_tolerance)) {
                             if (this.segmenter_data.config.break_at_video_idr) {
                                 if (is_random_access_point)
                                     next_segment = true;
@@ -241,12 +334,7 @@ class chunklistGenerator {
                         }
 
                         if (next_segment) {
-                            //New chunk ***
-                            console.log("Next segment!, Index: " + this.segmenter_data.chunk.getIndex().toString() + ". Packets: " + this.segmenter_data.chunk.getNumTSPackets().toString() + ". Time: " + this.segmenter_data.chunk.getDuration().toString());
-
-                            this.segmenter_data.chunks_info.push(this.segmenter_data.chunk);
-
-                            this._createNewChunk();
+                            this._createNewChunk(this.is_lhls);
                         }
 
                         //Do not save chunks until media init is set
@@ -257,7 +345,7 @@ class chunklistGenerator {
                             }
                         }
                         else {
-                            this.segmenter_data.chunk.addTSPacket(this.segmenter_data.ts_packet);
+                            this.segmenter_data.getCurrentChunk().addTSPacket(this.segmenter_data.ts_packet);
                         }
 
                         //New packet

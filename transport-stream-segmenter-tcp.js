@@ -11,8 +11,8 @@ const chkGenerator = require('./src/chunklistGenerator.js');
 
 // Check input arguments
 if (process.argv.length < 4) {
-    console.log('Use: ./transport-stream-segmenter-tcp.js PORT BASE_OUTPUT_PATH CHUNK_BASE_FILENAME CHUNKLIST_FILENAME [TARGET_DUR_S] [BIND_ADDRESS] [CHUNKLIST_TYPE]');
-    console.log('Example: ./transport-stream-segmenter-tcp.js 5000 /tmp media_ out.m3u8 4 127.0.0.1 event');
+    console.log('Use: ./transport-stream-segmenter-tcp.js PORT BASE_OUTPUT_PATH CHUNK_BASE_FILENAME CHUNKLIST_FILENAME [TARGET_DUR_S] [BIND_ADDRESS] [CHUNKLIST_TYPE] [LHLS_CHUNKS_IN_ADVANCE]');
+    console.log('Example: ./transport-stream-segmenter-tcp.js 5000 /tmp media_ out.m3u8 4 127.0.0.1 event 3');
     process.exit(1);
 }
 
@@ -21,6 +21,7 @@ const port = process.argv[2];
 const base_path = process.argv[3];
 const chunk_base_filename = process.argv[4];
 const chunklist_file_name = process.argv[5];
+let lhls_advanced_chunks = 0;
 
 let target_dur_s = 4; //Default
 if (process.argv.length > 6)
@@ -31,9 +32,15 @@ if (process.argv.length > 7)
     bind_addr = process.argv[7];
 
 let chunklist_type = chkGenerator.enChunklistType.LIVE_WINDOW;
+const def_live_window_size = 3;
 if (process.argv.length > 8) {
     if (process.argv[8] === chkGenerator.enChunklistType.LIVE_EVENT)
         chunklist_type = chkGenerator.enChunklistType.LIVE_EVENT;
+}
+
+if (process.argv.length > 9) {
+    lhls_advanced_chunks = Number.parseInt(process.argv[9], 10);
+    console.warn("You are using advanced chunks (LHLS), then the target duration will be used as a chunk duration, this means that the chunk duration could NOT be accurate. You have to ensure the frame rate and I frame positions in the input stream allows the segmenter to honor the requested target duration.");
 }
 
 //Chunklist full path
@@ -56,7 +63,7 @@ const server = net.createServer(function(socket) {
     console.log("Connected: " + socket.name);
 
     //Instantiate class
-    let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chunklist_type);
+    let segmenter = new chkGenerator.chunklistGenerator(true, base_path, chunk_base_filename, target_dur_s, chunklist_type, def_live_window_size, lhls_advanced_chunks);
 
     //Add chunk listener
     segmenter.setOnChunkListerer(function (that, chunklist) {

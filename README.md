@@ -31,7 +31,7 @@ It provides a server TCP socket to ingest a TS TCP stream, and it generates a li
 
 * Use the following syntax, see note 2 for testing:
 ```
-./transport-stream-segmenter-tcp.js ./transport-stream-segmenter-tcp.js 5000 /tmp media_ out.m3u8 4 127.0.0.1 event
+./transport-stream-segmenter-tcp.js 9000 /tmp media_ out.m3u8 4 127.0.0.1 event
 ```
 You can execute `./transport-stream-segmenter-tcp.js` (without arguments) to get help about accepted parameters
 
@@ -46,6 +46,6 @@ ffmpeg -f lavfi -re -i testsrc=duration=10:size=320x200:rate=30 \
 
 Note 2: If you do not have any encoder able to generate a TS TCP stream, you can execute the following script included in this repo (it uses `ffmpeg` behind the scenes):
 ```
-./test/scripts/./videoTestToLiveTSTSCP.sh 1000 120 9000 127.0.0.1
+./test/scripts/videoTestToLiveTSTSCP.sh 1000 120 9000 127.0.0.1
 ```
 

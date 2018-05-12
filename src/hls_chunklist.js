@@ -14,7 +14,7 @@ const DEFAULT_LIVE_WINDOW_SIZE = 3;
 class hls_chunklist {
     constructor(chunklist_type, media_file_url, options) {
 
-        this.chunks_info = [];
+        this.chunks = [];
         this.media_info = null;
 
         this.target_duration_s = -1;
@@ -22,6 +22,7 @@ class hls_chunklist {
         this.media_file_url = media_file_url;
         this.is_splitting_chunks = false;
         this.is_using_relative_path = false;
+        this.is_lhls = false;
 
         this.chunklist_type = chunklist_type;
         this.live_window_size = DEFAULT_LIVE_WINDOW_SIZE;
@@ -35,15 +36,18 @@ class hls_chunklist {
 
             if (typeof(options.live_window_size) === 'number')
                 this.live_window_size = options.live_window_size;
+
+            if (options.is_lhls === true)
+                this.is_lhls = true;
         }
     }
 
-    addChunkInfo(chunk) {
-        this.chunks_info.push(chunk);
+    addChunk(chunk) {
+        this.chunks.push(chunk);
 
         if (this.chunklist_type === enChunklistType.LIVE_WINDOW) {
-            while (this.chunks_info.length > this.live_window_size) {
-                let removed_chunk = this.chunks_info.shift();
+            while (this.chunks.length > this.live_window_size) {
+                let removed_chunk = this.chunks.shift();
 
                 this.media_sequence++;
 
@@ -57,7 +61,7 @@ class hls_chunklist {
     }
 
     toString(is_closed) {
-        if ((this.chunks_info === null) || (this.media_info === null) || (this.media_info.getIsSet() === false))
+        if ((this.chunks === null) || (this.media_info === null) || (this.media_info.getIsSet() === false))
             return null;
 
         let ret = [];
@@ -86,19 +90,22 @@ class hls_chunklist {
             ret.push('#EXT-X-MAP:URI="' + fileName + '"');
         }
 
-        for (let i = 0; i < this.chunks_info.length; i++) {
-            let chunk_info = this.chunks_info[i];
+        for (let i = 0; i < this.chunks.length; i++) {
+            let chunk = this.chunks[i];
+            let chunk_dur_s =  chunk.getDuration();
+            if (this.is_lhls)
+                chunk_dur_s = chunk.getEstimatedDuration();
 
-            ret.push('#EXTINF:' + chunk_info.getDuration() + ',');
+            ret.push('#EXTINF:' + chunk_dur_s + ',');
             if (this.is_splitting_chunks === false) {
-                ret.push('#EXT-X-BYTERANGE:' + (chunk_info.getLastBytePos() - chunk_info.getFirstBytePos()) + '@' + chunk_info.getFirstBytePos());
+                ret.push('#EXT-X-BYTERANGE:' + (chunk.getLastBytePos() - chunk.getFirstBytePos()) + '@' + chunk.getFirstBytePos());
                 ret.push(this.media_file_url);
             }
             else {
                 if (this.is_using_relative_path)
-                    ret.push(path.basename(chunk_info.getFileName()));
+                    ret.push(path.basename(chunk.getFileName()));
                 else
-                    ret.push(chunk_info.getFileName());
+                    ret.push(chunk.getFileName());
             }
         }
 
@@ -111,10 +118,13 @@ class hls_chunklist {
     _calcTargetDuration() {
         let ret = 0;
 
-        for (let i = 0; i < this.chunks_info.length; i++) {
-            let chunk_info = this.chunks_info[i];
+        for (let i = 0; i < this.chunks.length; i++) {
+            let chunk = this.chunks[i];
+            let chunk_dur = chunk.getDuration();
+            if (this.is_lhls)
+                chunk_dur = chunk.getEstimatedDuration();
 
-            ret = Math.max(ret, Math.ceil(chunk_info.getDuration()));
+            ret = Math.max(ret, Math.ceil(chunk_dur));
         }
 
         return ret;

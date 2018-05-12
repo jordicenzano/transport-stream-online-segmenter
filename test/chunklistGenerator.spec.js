@@ -182,4 +182,56 @@ test_with_chunks_live_00002.ts
             });
         });
     });
+
+    describe('LHLS generate a live window (2 chunks) chunklist and chunks from file', function () {
+
+        it('ffmpeg generated ts', function (done) {
+            let chunk_base_filename = 'test_lhls_with_chunks_live_';
+            let chunklist_filename = path.join(out_path, path.parse(input_vod_file_name).name + '_live.m3u8');
+
+            let segmenter = new underTest.chunklistGenerator(true, out_path, chunk_base_filename, 4, underTest.enChunklistType.LIVE_WINDOW, 2, 3);
+
+            let readFileStream = new fs.createReadStream(input_vod_file_name);
+
+            readFileStream.on("error", function() {
+                assert.fail('error reading the file');
+            });
+
+            readFileStream.on("data", function(ts_packet_chunk) {
+
+                segmenter.processDataChunk(ts_packet_chunk, function (err) {
+                    assert.equal(err, null);
+                });
+            });
+
+            readFileStream.on("end", function() {
+                segmenter.processDataEnd(function (err, data) {
+                    assert.equal(err, null);
+
+                    //Check chunklist
+                    assert.equal(data,
+                        `#EXTM3U
+#EXT-X-TARGETDURATION:4
+#EXT-X-VERSION:6
+#EXT-X-MEDIA-SEQUENCE:3
+#EXT-X-MAP:URI="test_lhls_with_chunks_live_init.ts"
+#EXTINF:4,
+test_lhls_with_chunks_live_00003.ts
+#EXTINF:4,
+test_lhls_with_chunks_live_00004.ts
+#EXT-X-ENDLIST`);
+
+                    //Save chunklist (for testing purposes)
+                    fs.writeFileSync(chunklist_filename, data);
+
+                    //Check chunk files
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + 'init.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00001.ts')), true);
+                    assert.equal(fs.existsSync(path.join(out_path, chunk_base_filename + '00002.ts')), true);
+
+                    done();
+                });
+            });
+        });
+    });
 });
