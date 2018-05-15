@@ -52,6 +52,7 @@ class hls_chunk {
 
             //Create ghost file indicting is growing
             fs.writeFileSync(this.filename_ghost, "");
+            fs.openSync(this.filename, 'w');
 
             //Create growing file
             this.curr_stream = null;
@@ -66,8 +67,9 @@ class hls_chunk {
             }
 
             if (this.filename_ghost != null) {
-                if (fs.existsSync(this.filename_ghost))
+                if (fs.existsSync(this.filename_ghost)) {
                     fs.unlinkSync(this.filename_ghost);
+                }
             }
 
         }

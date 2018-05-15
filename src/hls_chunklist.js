@@ -57,7 +57,7 @@ class hls_chunklist {
     }
 
     toString(is_closed) {
-        if ((this.chunks_info === null) || (this.media_info === null) || (this.media_info.getIsSet() === false))
+        if ((this.chunks_info === null) || (this.media_info === null))// || (this.media_info.getIsSet() === false))
             return null;
 
         let ret = [];
@@ -83,7 +83,7 @@ class hls_chunklist {
             if (this.is_using_relative_path)
                 fileName = path.basename(fileName);
 
-            ret.push('#EXT-X-MAP:URI="' + fileName + '"');
+            // ret.push('#EXT-X-MAP:URI="' + fileName + '"');
         }
 
         for (let i = 0; i < this.chunks_info.length; i++) {
