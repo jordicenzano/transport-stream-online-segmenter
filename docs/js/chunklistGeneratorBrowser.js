@@ -118,54 +118,55 @@ function fromByteArray (uint8) {
 //========================================================================================
 // Globals
 //========================================================================================
+var vm = require("vm");
 
 var Context = require("./context").Context;
 
 var PRIMITIVE_TYPES = {
-    'UInt8'    : 1,
-    'UInt16LE' : 2,
-    'UInt16BE' : 2,
-    'UInt32LE' : 4,
-    'UInt32BE' : 4,
-    'Int8'     : 1,
-    'Int16LE'  : 2,
-    'Int16BE'  : 2,
-    'Int32LE'  : 4,
-    'Int32BE'  : 4,
-    'FloatLE'  : 4,
-    'FloatBE'  : 4,
-    'DoubleLE' : 8,
-    'DoubleBE' : 8
+  UInt8: 1,
+  UInt16LE: 2,
+  UInt16BE: 2,
+  UInt32LE: 4,
+  UInt32BE: 4,
+  Int8: 1,
+  Int16LE: 2,
+  Int16BE: 2,
+  Int32LE: 4,
+  Int32BE: 4,
+  FloatLE: 4,
+  FloatBE: 4,
+  DoubleLE: 8,
+  DoubleBE: 8
 };
 
 var SPECIAL_TYPES = {
-    'String'   : null,
-    'Buffer'   : null,
-    'Array'    : null,
-    'Skip'     : null,
-    'Choice'   : null,
-    'Nest'     : null,
-    'Bit'      : null
+  String: null,
+  Buffer: null,
+  Array: null,
+  Skip: null,
+  Choice: null,
+  Nest: null,
+  Bit: null
 };
 
 var aliasRegistry = {};
-var FUNCTION_PREFIX = '___parser_';
+var FUNCTION_PREFIX = "___parser_";
 
 var BIT_RANGE = [];
 (function() {
-    var i;
-    for (i = 1; i <= 32; i++) {
-        BIT_RANGE.push(i);
-    }
+  var i;
+  for (i = 1; i <= 32; i++) {
+    BIT_RANGE.push(i);
+  }
 })();
 
 // Converts Parser's method names to internal type names
 var NAME_MAP = {};
 Object.keys(PRIMITIVE_TYPES)
-    .concat(Object.keys(SPECIAL_TYPES))
-    .forEach(function(type) {
-        NAME_MAP[type.toLowerCase()] = type;
-    });
+  .concat(Object.keys(SPECIAL_TYPES))
+  .forEach(function(type) {
+    NAME_MAP[type.toLowerCase()] = type;
+  });
 
 //========================================================================================
 // class Parser
@@ -176,15 +177,15 @@ Object.keys(PRIMITIVE_TYPES)
 //----------------------------------------------------------------------------------------
 
 var Parser = function() {
-    this.varName = '';
-    this.type = '';
-    this.options = {};
-    this.next = null;
-    this.head = null;
-    this.compiled = null;
-    this.endian = 'be';
-    this.constructorFn = null;
-    this.alias = null;
+  this.varName = "";
+  this.type = "";
+  this.options = {};
+  this.next = null;
+  this.head = null;
+  this.compiled = null;
+  this.endian = "be";
+  this.constructorFn = null;
+  this.alias = null;
 };
 
 //----------------------------------------------------------------------------------------
@@ -192,266 +193,307 @@ var Parser = function() {
 //----------------------------------------------------------------------------------------
 
 Parser.start = function() {
-    return new Parser();
+  return new Parser();
 };
 
-Object.keys(PRIMITIVE_TYPES)
-    .forEach(function(type) {
-        Parser.prototype[type.toLowerCase()] = function(varName, options) {
-            return this.setNextParser(type.toLowerCase(), varName, options);
-        };
+Object.keys(PRIMITIVE_TYPES).forEach(function(type) {
+  Parser.prototype[type.toLowerCase()] = function(varName, options) {
+    return this.setNextParser(type.toLowerCase(), varName, options);
+  };
 
-        var typeWithoutEndian = type.replace(/BE|LE/, '').toLowerCase();
-        if (!(typeWithoutEndian in Parser.prototype)) {
-            Parser.prototype[typeWithoutEndian] = function(varName, options) {
-                return this[typeWithoutEndian + this.endian](varName, options);
-            };
-        }
-    });
+  var typeWithoutEndian = type.replace(/BE|LE/, "").toLowerCase();
+  if (!(typeWithoutEndian in Parser.prototype)) {
+    Parser.prototype[typeWithoutEndian] = function(varName, options) {
+      return this[typeWithoutEndian + this.endian](varName, options);
+    };
+  }
+});
 
 BIT_RANGE.forEach(function(i) {
-    Parser.prototype['bit' + i.toString()] = function(varName, options) {
-        if (!options) {
-            options = {};
-        }
-        options.length = i;
-        return this.setNextParser('bit', varName, options);
-    };
+  Parser.prototype["bit" + i.toString()] = function(varName, options) {
+    if (!options) {
+      options = {};
+    }
+    options.length = i;
+    return this.setNextParser("bit", varName, options);
+  };
 });
 
 Parser.prototype.namely = function(alias) {
-    aliasRegistry[alias] = this;
-    this.alias = alias;
-    return this;
-}
+  aliasRegistry[alias] = this;
+  this.alias = alias;
+  return this;
+};
 
 Parser.prototype.skip = function(length, options) {
-    if (options && options.assert) {
-        throw new Error('assert option on skip is not allowed.');
-    }
+  if (options && options.assert) {
+    throw new Error("assert option on skip is not allowed.");
+  }
 
-    return this.setNextParser('skip', '', {length: length});
+  return this.setNextParser("skip", "", { length: length });
 };
 
 Parser.prototype.string = function(varName, options) {
-    if (!options.zeroTerminated && !options.length && !options.greedy) {
-        throw new Error('Neither length, zeroTerminated, nor greedy is defined for string.');
-    }
-    if ((options.zeroTerminated || options.length) && options.greedy) {
-        throw new Error('greedy is mutually exclusive with length and zeroTerminated for string.');
-    }
-    if (options.stripNull && !(options.length || options.greedy)) {
-        throw new Error('Length or greedy must be defined if stripNull is defined.');
-    }
-    options.encoding = options.encoding || 'utf8';
+  if (!options.zeroTerminated && !options.length && !options.greedy) {
+    throw new Error(
+      "Neither length, zeroTerminated, nor greedy is defined for string."
+    );
+  }
+  if ((options.zeroTerminated || options.length) && options.greedy) {
+    throw new Error(
+      "greedy is mutually exclusive with length and zeroTerminated for string."
+    );
+  }
+  if (options.stripNull && !(options.length || options.greedy)) {
+    throw new Error(
+      "Length or greedy must be defined if stripNull is defined."
+    );
+  }
+  options.encoding = options.encoding || "utf8";
 
-    return this.setNextParser('string', varName, options);
+  return this.setNextParser("string", varName, options);
 };
 
 Parser.prototype.buffer = function(varName, options) {
-    if (!options.length && !options.readUntil) {
-        throw new Error('Length nor readUntil is defined in buffer parser');
-    }
+  if (!options.length && !options.readUntil) {
+    throw new Error("Length nor readUntil is defined in buffer parser");
+  }
 
-    return this.setNextParser('buffer', varName, options);
+  return this.setNextParser("buffer", varName, options);
 };
 
 Parser.prototype.array = function(varName, options) {
-    if (!options.readUntil && !options.length && !options.lengthInBytes) {
-        throw new Error('Length option of array is not defined.');
-    }
-    if (!options.type) {
-        throw new Error('Type option of array is not defined.');
-    }
-    if ((typeof options.type === 'string') && !aliasRegistry[options.type]
-        && Object.keys(PRIMITIVE_TYPES).indexOf(NAME_MAP[options.type]) < 0) {
-        throw new Error('Specified primitive type "' + options.type + '" is not supported.');
-    }
+  if (!options.readUntil && !options.length && !options.lengthInBytes) {
+    throw new Error("Length option of array is not defined.");
+  }
+  if (!options.type) {
+    throw new Error("Type option of array is not defined.");
+  }
+  if (
+    typeof options.type === "string" &&
+    !aliasRegistry[options.type] &&
+    Object.keys(PRIMITIVE_TYPES).indexOf(NAME_MAP[options.type]) < 0
+  ) {
+    throw new Error(
+      'Specified primitive type "' + options.type + '" is not supported.'
+    );
+  }
 
-    return this.setNextParser('array', varName, options);
+  return this.setNextParser("array", varName, options);
 };
 
 Parser.prototype.choice = function(varName, options) {
-    if (!options.tag) {
-        throw new Error('Tag option of array is not defined.');
-    }
-    if (!options.choices) {
-        throw new Error('Choices option of array is not defined.');
-    }
-    Object.keys(options.choices).forEach(function(key) {
-        if (isNaN(parseInt(key, 10))) {
-            throw new Error('Key of choices must be a number.');
-        }
-        if (!options.choices[key]) {
-            throw new Error('Choice Case ' + key + ' of ' + varName + ' is not valid.');
-        }
+  if (arguments.length == 1 && typeof varName === "object") {
+    options = varName;
+    varName = null;
+  }
 
-        if ((typeof options.choices[key] === 'string') && !aliasRegistry[options.choices[key]]
-            && (Object.keys(PRIMITIVE_TYPES).indexOf(NAME_MAP[options.choices[key]]) < 0)) {
-            throw new Error('Specified primitive type "' +  options.choices[key] + '" is not supported.');
-        }
-    }, this);
+  if (!options.tag) {
+    throw new Error("Tag option of array is not defined.");
+  }
+  if (!options.choices) {
+    throw new Error("Choices option of array is not defined.");
+  }
 
-    return this.setNextParser('choice', varName, options);
+  Object.keys(options.choices).forEach(function(key) {
+    if (isNaN(parseInt(key, 10))) {
+      throw new Error("Key of choices must be a number.");
+    }
+    if (!options.choices[key]) {
+      throw new Error(
+        "Choice Case " + key + " of " + varName + " is not valid."
+      );
+    }
+
+    if (
+      typeof options.choices[key] === "string" &&
+      !aliasRegistry[options.choices[key]] &&
+      Object.keys(PRIMITIVE_TYPES).indexOf(NAME_MAP[options.choices[key]]) < 0
+    ) {
+      throw new Error(
+        'Specified primitive type "' +
+          options.choices[key] +
+          '" is not supported.'
+      );
+    }
+  }, this);
+
+  return this.setNextParser("choice", varName, options);
 };
 
 Parser.prototype.nest = function(varName, options) {
-    if (!options.type) {
-        throw new Error('Type option of nest is not defined.');
-    }
+  if (arguments.length == 1 && typeof varName === "object") {
+    options = varName;
+    varName = null;
+  }
 
-    if (!(options.type instanceof Parser) && !aliasRegistry[options.type]) {
-        throw new Error('Type option of nest must be a Parser object.');
-    }
+  if (!options.type) {
+    throw new Error("Type option of nest is not defined.");
+  }
+  if (!(options.type instanceof Parser) && !aliasRegistry[options.type]) {
+    throw new Error("Type option of nest must be a Parser object.");
+  }
+  if (!(options.type instanceof Parser) && !varName) {
+    throw new Error(
+      "options.type must be a object if variable name is omitted."
+    );
+  }
 
-    return this.setNextParser('nest', varName, options);
+  return this.setNextParser("nest", varName, options);
 };
 
 Parser.prototype.endianess = function(endianess) {
-    switch (endianess.toLowerCase()) {
-    case 'little':
-        this.endian = 'le';
-        break;
-    case 'big':
-        this.endian = 'be';
-        break;
+  switch (endianess.toLowerCase()) {
+    case "little":
+      this.endian = "le";
+      break;
+    case "big":
+      this.endian = "be";
+      break;
     default:
-        throw new Error('Invalid endianess: ' + endianess);
-    }
+      throw new Error("Invalid endianess: " + endianess);
+  }
 
-    return this;
+  return this;
 };
 
 Parser.prototype.create = function(constructorFn) {
-    if (!(constructorFn instanceof Function)) {
-        throw new Error('Constructor must be a Function object.');
-    }
+  if (!(constructorFn instanceof Function)) {
+    throw new Error("Constructor must be a Function object.");
+  }
 
-    this.constructorFn = constructorFn;
+  this.constructorFn = constructorFn;
 
-    return this;
+  return this;
 };
 
 Parser.prototype.getCode = function() {
-    var ctx = new Context();
+  var ctx = new Context();
 
-    ctx.pushCode('if (false) {');
-    ctx.generateError('"argument buffer is not a Buffer object"');
-    ctx.pushCode('}');
+  ctx.pushCode("if (false) {");
+  ctx.generateError('"argument buffer is not a Buffer object"');
+  ctx.pushCode("}");
 
-    if (!this.alias) {
-        this.addRawCode(ctx);
-    } else {
-        this.addAliasedCode(ctx);
-    }
+  if (!this.alias) {
+    this.addRawCode(ctx);
+  } else {
+    this.addAliasedCode(ctx);
+  }
 
-    if (this.alias) {
-        ctx.pushCode('return {0}(0).result;', FUNCTION_PREFIX + this.alias);
-    } else {
-        ctx.pushCode('return vars;');
-    }
+  if (this.alias) {
+    ctx.pushCode("return {0}(0).result;", FUNCTION_PREFIX + this.alias);
+  } else {
+    ctx.pushCode("return vars;");
+  }
 
-    return ctx.code;
+  return ctx.code;
 };
 
 Parser.prototype.addRawCode = function(ctx) {
-    ctx.pushCode('var offset = 0;');
+  ctx.pushCode("var offset = 0;");
 
-    if (this.constructorFn) {
-        ctx.pushCode('var vars = new constructorFn();');
-    } else {
-        ctx.pushCode('var vars = {};');
-    }
+  if (this.constructorFn) {
+    ctx.pushCode("var vars = new constructorFn();");
+  } else {
+    ctx.pushCode("var vars = {};");
+  }
 
-    this.generate(ctx);
+  this.generate(ctx);
 
-    this.resolveReferences(ctx);
+  this.resolveReferences(ctx);
 
-    ctx.pushCode('return vars;');
+  ctx.pushCode("return vars;");
 };
 
 Parser.prototype.addAliasedCode = function(ctx) {
-    ctx.pushCode('function {0}(offset) {', FUNCTION_PREFIX + this.alias);
+  ctx.pushCode("function {0}(offset) {", FUNCTION_PREFIX + this.alias);
 
-    if (this.constructorFn) {
-        ctx.pushCode('var vars = new constructorFn();');
-    } else {
-        ctx.pushCode('var vars = {};');
-    }
+  if (this.constructorFn) {
+    ctx.pushCode("var vars = new constructorFn();");
+  } else {
+    ctx.pushCode("var vars = {};");
+  }
 
-    this.generate(ctx);
+  this.generate(ctx);
 
-    ctx.markResolved(this.alias);
-    this.resolveReferences(ctx);
+  ctx.markResolved(this.alias);
+  this.resolveReferences(ctx);
 
-    ctx.pushCode('return { offset: offset, result: vars };');
-    ctx.pushCode('}');
+  ctx.pushCode("return { offset: offset, result: vars };");
+  ctx.pushCode("}");
 
-    return ctx;
+  return ctx;
 };
 
 Parser.prototype.resolveReferences = function(ctx) {
-    var references = ctx.getUnresolvedReferences();
-    ctx.markRequested(references);
-    references.forEach(function(alias) {
-        var parser = aliasRegistry[alias];
-        parser.addAliasedCode(ctx);
-    });
+  var references = ctx.getUnresolvedReferences();
+  ctx.markRequested(references);
+  references.forEach(function(alias) {
+    var parser = aliasRegistry[alias];
+    parser.addAliasedCode(ctx);
+  });
 };
 
 Parser.prototype.compile = function() {
-    this.compiled = new Function('buffer', 'callback', 'constructorFn', this.getCode());
+  var src = "(function(buffer, constructorFn) { " + this.getCode() + " })";
+  this.compiled = vm.runInThisContext(src);
 };
 
 Parser.prototype.sizeOf = function() {
-    var size = NaN;
+  var size = NaN;
 
-    if (Object.keys(PRIMITIVE_TYPES).indexOf(this.type) >= 0) {
-        size = PRIMITIVE_TYPES[this.type];
+  if (Object.keys(PRIMITIVE_TYPES).indexOf(this.type) >= 0) {
+    size = PRIMITIVE_TYPES[this.type];
 
     // if this is a fixed length string
-    } else if (this.type === 'String' && typeof this.options.length === 'number') {
-        size = this.options.length;
+  } else if (
+    this.type === "String" &&
+    typeof this.options.length === "number"
+  ) {
+    size = this.options.length;
 
     // if this is a fixed length buffer
-    } else if (this.type === 'Buffer' && typeof this.options.length === 'number') {
-        size = this.options.length;
+  } else if (
+    this.type === "Buffer" &&
+    typeof this.options.length === "number"
+  ) {
+    size = this.options.length;
 
     // if this is a fixed length array
-    } else if (this.type === 'Array' && typeof this.options.length === 'number') {
-        var elementSize = NaN;
-        if (typeof this.options.type === 'string'){
-            elementSize = PRIMITIVE_TYPES[NAME_MAP[this.options.type]];
-        } else if (this.options.type instanceof Parser) {
-            elementSize = this.options.type.sizeOf();
-        }
-        size = this.options.length * elementSize;
+  } else if (this.type === "Array" && typeof this.options.length === "number") {
+    var elementSize = NaN;
+    if (typeof this.options.type === "string") {
+      elementSize = PRIMITIVE_TYPES[NAME_MAP[this.options.type]];
+    } else if (this.options.type instanceof Parser) {
+      elementSize = this.options.type.sizeOf();
+    }
+    size = this.options.length * elementSize;
 
     // if this a skip
-    } else if (this.type === 'Skip') {
-        size = this.options.length;
+  } else if (this.type === "Skip") {
+    size = this.options.length;
 
     // if this is a nested parser
-    } else if (this.type === 'Nest') {
-        size = this.options.type.sizeOf();
-    } else if (!this.type) {
-        size = 0;
-    }
+  } else if (this.type === "Nest") {
+    size = this.options.type.sizeOf();
+  } else if (!this.type) {
+    size = 0;
+  }
 
-    if (this.next) {
-        size += this.next.sizeOf();
-    }
+  if (this.next) {
+    size += this.next.sizeOf();
+  }
 
-    return size;
+  return size;
 };
 
 // Follow the parser chain till the root and start parsing from there
-Parser.prototype.parse = function(buffer, callback) {
-    if (!this.compiled) {
-        this.compile();
-    }
+Parser.prototype.parse = function(buffer) {
+  if (!this.compiled) {
+    this.compile();
+  }
 
-    return this.compiled(buffer, callback, this.constructorFn);
+  return this.compiled(buffer, this.constructorFn);
 };
 
 //----------------------------------------------------------------------------------------
@@ -459,321 +501,362 @@ Parser.prototype.parse = function(buffer, callback) {
 //----------------------------------------------------------------------------------------
 
 Parser.prototype.setNextParser = function(type, varName, options) {
-    var parser = new Parser();
+  var parser = new Parser();
 
-    parser.type = NAME_MAP[type];
-    parser.varName = varName;
-    parser.options = options || parser.options;
-    parser.endian = this.endian;
+  parser.type = NAME_MAP[type];
+  parser.varName = varName;
+  parser.options = options || parser.options;
+  parser.endian = this.endian;
 
-    if (this.head) {
-        this.head.next = parser;
-    } else {
-        this.next = parser;
-    }
-    this.head = parser;
+  if (this.head) {
+    this.head.next = parser;
+  } else {
+    this.next = parser;
+  }
+  this.head = parser;
 
-    return this;
+  return this;
 };
 
 // Call code generator for this parser
 Parser.prototype.generate = function(ctx) {
-    if (this.type) {
-        this['generate' + this.type](ctx);
-        this.generateAssert(ctx);
-    }
+  if (this.type) {
+    this["generate" + this.type](ctx);
+    this.generateAssert(ctx);
+  }
 
-    var varName = ctx.generateVariable(this.varName);
-    if (this.options.formatter) {
-        this.generateFormatter(ctx, varName, this.options.formatter);
-    }
+  var varName = ctx.generateVariable(this.varName);
+  if (this.options.formatter) {
+    this.generateFormatter(ctx, varName, this.options.formatter);
+  }
 
-    return this.generateNext(ctx);
+  return this.generateNext(ctx);
 };
 
 Parser.prototype.generateAssert = function(ctx) {
-    if (!this.options.assert) {
-        return;
-    }
+  if (!this.options.assert) {
+    return;
+  }
 
-    var varName = ctx.generateVariable(this.varName);
+  var varName = ctx.generateVariable(this.varName);
 
-    switch (typeof this.options.assert) {
-        case 'function':
-            ctx.pushCode('if (!({0}).call(vars, {1})) {', this.options.assert, varName);
-        break;
-        case 'number':
-            ctx.pushCode('if ({0} !== {1}) {', this.options.assert, varName);
-        break;
-        case 'string':
-            ctx.pushCode('if ("{0}" !== {1}) {', this.options.assert, varName);
-        break;
-        default:
-            throw new Error('Assert option supports only strings, numbers and assert functions.');
-    }
-    ctx.generateError('"Assert error: {0} is " + {0}', varName);
-    ctx.pushCode('}');
+  switch (typeof this.options.assert) {
+    case "function":
+      ctx.pushCode(
+        "if (!({0}).call(vars, {1})) {",
+        this.options.assert,
+        varName
+      );
+      break;
+    case "number":
+      ctx.pushCode("if ({0} !== {1}) {", this.options.assert, varName);
+      break;
+    case "string":
+      ctx.pushCode('if ("{0}" !== {1}) {', this.options.assert, varName);
+      break;
+    default:
+      throw new Error(
+        "Assert option supports only strings, numbers and assert functions."
+      );
+  }
+  ctx.generateError('"Assert error: {0} is " + {0}', varName);
+  ctx.pushCode("}");
 };
 
 // Recursively call code generators and append results
 Parser.prototype.generateNext = function(ctx) {
-    if (this.next) {
-        ctx = this.next.generate(ctx);
-    }
+  if (this.next) {
+    ctx = this.next.generate(ctx);
+  }
 
-    return ctx;
+  return ctx;
 };
 
 Object.keys(PRIMITIVE_TYPES).forEach(function(type) {
-    Parser.prototype['generate' + type] = function(ctx) {
-        ctx.pushCode('{0} = buffer.read{1}(offset);', ctx.generateVariable(this.varName), type);
-        ctx.pushCode('offset += {0};', PRIMITIVE_TYPES[type]);
-    };
+  Parser.prototype["generate" + type] = function(ctx) {
+    ctx.pushCode(
+      "{0} = buffer.read{1}(offset);",
+      ctx.generateVariable(this.varName),
+      type
+    );
+    ctx.pushCode("offset += {0};", PRIMITIVE_TYPES[type]);
+  };
 });
 
 Parser.prototype.generateBit = function(ctx) {
-    // TODO find better method to handle nested bit fields
-    var parser = JSON.parse(JSON.stringify(this));
-    parser.varName = ctx.generateVariable(parser.varName);
-    ctx.bitFields.push(parser);
+  // TODO find better method to handle nested bit fields
+  var parser = JSON.parse(JSON.stringify(this));
+  parser.varName = ctx.generateVariable(parser.varName);
+  ctx.bitFields.push(parser);
 
-    if (!this.next || (this.next && ['Bit', 'Nest'].indexOf(this.next.type) < 0)) {
-        var sum = 0;
-        ctx.bitFields.forEach(function(parser) {
-            sum += parser.options.length;
-        });
+  if (
+    !this.next ||
+    (this.next && ["Bit", "Nest"].indexOf(this.next.type) < 0)
+  ) {
+    var sum = 0;
+    ctx.bitFields.forEach(function(parser) {
+      sum += parser.options.length;
+    });
 
-        var val = ctx.generateTmpVariable();
+    var val = ctx.generateTmpVariable();
 
-        if (sum <= 8) {
-            ctx.pushCode('var {0} = buffer.readUInt8(offset);', val);
-            sum = 8;
-        } else if (sum <= 16) {
-            ctx.pushCode('var {0} = buffer.readUInt16BE(offset);', val);
-            sum = 16;
-        } else if (sum <= 24) {
-            var val1 = ctx.generateTmpVariable();
-            var val2 = ctx.generateTmpVariable();
-            ctx.pushCode('var {0} = buffer.readUInt16BE(offset);', val1);
-            ctx.pushCode('var {0} = buffer.readUInt8(offset + 2);', val2);
-            ctx.pushCode('var {2} = ({0} << 8) | {1};', val1, val2, val);
-            sum = 24;
-        } else if (sum <= 32) {
-            ctx.pushCode('var {0} = buffer.readUInt32BE(offset);', val);
-            sum = 32;
-        } else {
-            throw new Error('Currently, bit field sequence longer than 4-bytes is not supported.');
-        }
-        ctx.pushCode('offset += {0};', sum / 8);
-
-        var bitOffset = 0;
-        var isBigEndian = this.endian === 'be';
-        ctx.bitFields.forEach(function(parser) {
-            ctx.pushCode('{0} = {1} >> {2} & {3};',
-                parser.varName,
-                val,
-                isBigEndian ? sum - bitOffset - parser.options.length : bitOffset,
-                (1 << parser.options.length) - 1
-            );
-            bitOffset += parser.options.length;
-        });
-
-        ctx.bitFields = [];
+    if (sum <= 8) {
+      ctx.pushCode("var {0} = buffer.readUInt8(offset);", val);
+      sum = 8;
+    } else if (sum <= 16) {
+      ctx.pushCode("var {0} = buffer.readUInt16BE(offset);", val);
+      sum = 16;
+    } else if (sum <= 24) {
+      var val1 = ctx.generateTmpVariable();
+      var val2 = ctx.generateTmpVariable();
+      ctx.pushCode("var {0} = buffer.readUInt16BE(offset);", val1);
+      ctx.pushCode("var {0} = buffer.readUInt8(offset + 2);", val2);
+      ctx.pushCode("var {2} = ({0} << 8) | {1};", val1, val2, val);
+      sum = 24;
+    } else if (sum <= 32) {
+      ctx.pushCode("var {0} = buffer.readUInt32BE(offset);", val);
+      sum = 32;
+    } else {
+      throw new Error(
+        "Currently, bit field sequence longer than 4-bytes is not supported."
+      );
     }
+    ctx.pushCode("offset += {0};", sum / 8);
+
+    var bitOffset = 0;
+    var isBigEndian = this.endian === "be";
+    ctx.bitFields.forEach(function(parser) {
+      ctx.pushCode(
+        "{0} = {1} >> {2} & {3};",
+        parser.varName,
+        val,
+        isBigEndian ? sum - bitOffset - parser.options.length : bitOffset,
+        (1 << parser.options.length) - 1
+      );
+      bitOffset += parser.options.length;
+    });
+
+    ctx.bitFields = [];
+  }
 };
 
 Parser.prototype.generateSkip = function(ctx) {
-    var length = ctx.generateOption(this.options.length);
-    ctx.pushCode('offset += {0};', length);
+  var length = ctx.generateOption(this.options.length);
+  ctx.pushCode("offset += {0};", length);
 };
 
 Parser.prototype.generateString = function(ctx) {
-    var name = ctx.generateVariable(this.varName);
-    var start = ctx.generateTmpVariable();
+  var name = ctx.generateVariable(this.varName);
+  var start = ctx.generateTmpVariable();
 
-    if (this.options.length && this.options.zeroTerminated) {
-        ctx.pushCode('var {0} = offset;', start);
-        ctx.pushCode('while(buffer.readUInt8(offset++) !== 0 && offset - {0}  < {1});',
-            start,
-            this.options.length
-        );
-        ctx.pushCode('{0} = buffer.toString(\'{1}\', {2}, offset - {2} < {3} ? offset - 1 : offset);',
-            name,
-            this.options.encoding,
-            start,
-            this.options.length
-        );
-    } else if(this.options.length) {
-        ctx.pushCode('{0} = buffer.toString(\'{1}\', offset, offset + {2});',
-                            name,
-                            this.options.encoding,
-                            ctx.generateOption(this.options.length)
-                        );
-        ctx.pushCode('offset += {0};', ctx.generateOption(this.options.length));
-    } else if (this.options.zeroTerminated) {
-        ctx.pushCode('var {0} = offset;', start);
-        ctx.pushCode('while(buffer.readUInt8(offset++) !== 0);');
-        ctx.pushCode('{0} = buffer.toString(\'{1}\', {2}, offset - 1);',
-            name,
-            this.options.encoding,
-            start
-        );
-    } else if (this.options.greedy) {
-        ctx.pushCode('var {0} = offset;', start);
-        ctx.pushCode('while(buffer.length > offset++);');
-        ctx.pushCode('{0} = buffer.toString(\'{1}\', {2}, offset);',
-            name,
-            this.options.encoding,
-            start
-        );
-    }
-    if(this.options.stripNull) {
-        ctx.pushCode('{0} = {0}.replace(/\\x00+$/g, \'\')', name);
-    }
+  if (this.options.length && this.options.zeroTerminated) {
+    ctx.pushCode("var {0} = offset;", start);
+    ctx.pushCode(
+      "while(buffer.readUInt8(offset++) !== 0 && offset - {0}  < {1});",
+      start,
+      this.options.length
+    );
+    ctx.pushCode(
+      "{0} = buffer.toString('{1}', {2}, offset - {2} < {3} ? offset - 1 : offset);",
+      name,
+      this.options.encoding,
+      start,
+      this.options.length
+    );
+  } else if (this.options.length) {
+    ctx.pushCode(
+      "{0} = buffer.toString('{1}', offset, offset + {2});",
+      name,
+      this.options.encoding,
+      ctx.generateOption(this.options.length)
+    );
+    ctx.pushCode("offset += {0};", ctx.generateOption(this.options.length));
+  } else if (this.options.zeroTerminated) {
+    ctx.pushCode("var {0} = offset;", start);
+    ctx.pushCode("while(buffer.readUInt8(offset++) !== 0);");
+    ctx.pushCode(
+      "{0} = buffer.toString('{1}', {2}, offset - 1);",
+      name,
+      this.options.encoding,
+      start
+    );
+  } else if (this.options.greedy) {
+    ctx.pushCode("var {0} = offset;", start);
+    ctx.pushCode("while(buffer.length > offset++);");
+    ctx.pushCode(
+      "{0} = buffer.toString('{1}', {2}, offset);",
+      name,
+      this.options.encoding,
+      start
+    );
+  }
+  if (this.options.stripNull) {
+    ctx.pushCode("{0} = {0}.replace(/\\x00+$/g, '')", name);
+  }
 };
 
 Parser.prototype.generateBuffer = function(ctx) {
-    if (this.options.readUntil === 'eof') {
-        ctx.pushCode('{0} = buffer.slice(offset);',
-            ctx.generateVariable(this.varName)
-            );
-    } else {
-        ctx.pushCode('{0} = buffer.slice(offset, offset + {1});',
-            ctx.generateVariable(this.varName),
-            ctx.generateOption(this.options.length)
-            );
-        ctx.pushCode('offset += {0};', ctx.generateOption(this.options.length));
-    }
+  if (this.options.readUntil === "eof") {
+    ctx.pushCode(
+      "{0} = buffer.slice(offset);",
+      ctx.generateVariable(this.varName)
+    );
+  } else {
+    ctx.pushCode(
+      "{0} = buffer.slice(offset, offset + {1});",
+      ctx.generateVariable(this.varName),
+      ctx.generateOption(this.options.length)
+    );
+    ctx.pushCode("offset += {0};", ctx.generateOption(this.options.length));
+  }
 
-    if (this.options.clone) {
-        var buf = ctx.generateTmpVariable();
-
-        ctx.pushCode('var {0} = new Buffer({1}.length);', buf, ctx.generateVariable(this.varName));
-        ctx.pushCode('{0}.copy({1});', ctx.generateVariable(this.varName), buf);
-        ctx.pushCode('{0} = {1}', ctx.generateVariable(this.varName), buf);
-    }
+  if (this.options.clone) {
+    ctx.pushCode("{0} = Buffer.from({0});", ctx.generateVariable(this.varName));
+  }
 };
 
 Parser.prototype.generateArray = function(ctx) {
-    var length = ctx.generateOption(this.options.length);
-    var lengthInBytes = ctx.generateOption(this.options.lengthInBytes);
-    var type = this.options.type;
-    var counter = ctx.generateTmpVariable();
-    var lhs = ctx.generateVariable(this.varName);
-    var item = ctx.generateTmpVariable();
-    var key = this.options.key;
-    var isHash = typeof key === 'string';
+  var length = ctx.generateOption(this.options.length);
+  var lengthInBytes = ctx.generateOption(this.options.lengthInBytes);
+  var type = this.options.type;
+  var counter = ctx.generateTmpVariable();
+  var lhs = ctx.generateVariable(this.varName);
+  var item = ctx.generateTmpVariable();
+  var key = this.options.key;
+  var isHash = typeof key === "string";
 
-    if (isHash) {
-        ctx.pushCode('{0} = {};', lhs);
+  if (isHash) {
+    ctx.pushCode("{0} = {};", lhs);
+  } else {
+    ctx.pushCode("{0} = [];", lhs);
+  }
+  if (typeof this.options.readUntil === "function") {
+    ctx.pushCode("do {");
+  } else if (this.options.readUntil === "eof") {
+    ctx.pushCode("for (var {0} = 0; offset < buffer.length; {0}++) {", counter);
+  } else if (lengthInBytes !== undefined) {
+    ctx.pushCode(
+      "for (var {0} = offset; offset - {0} < {1}; ) {",
+      counter,
+      lengthInBytes
+    );
+  } else {
+    ctx.pushCode("for (var {0} = 0; {0} < {1}; {0}++) {", counter, length);
+  }
+
+  if (typeof type === "string") {
+    if (!aliasRegistry[type]) {
+      ctx.pushCode("var {0} = buffer.read{1}(offset);", item, NAME_MAP[type]);
+      ctx.pushCode("offset += {0};", PRIMITIVE_TYPES[NAME_MAP[type]]);
     } else {
-        ctx.pushCode('{0} = [];', lhs);
+      var tempVar = ctx.generateTmpVariable();
+      ctx.pushCode("var {0} = {1}(offset);", tempVar, FUNCTION_PREFIX + type);
+      ctx.pushCode("var {0} = {1}.result; offset = {1}.offset;", item, tempVar);
+      if (type !== this.alias) ctx.addReference(type);
     }
-    if (typeof this.options.readUntil === 'function') {
-        ctx.pushCode('do {');
-    } else if (this.options.readUntil === 'eof') {
-        ctx.pushCode('for (var {0} = 0; offset < buffer.length; {0}++) {', counter);
-    } else if (lengthInBytes !== undefined) {
-        ctx.pushCode('for (var {0} = offset; offset - {0} < {1}; ) {', counter, lengthInBytes);
-    } else {
-        ctx.pushCode('for (var {0} = 0; {0} < {1}; {0}++) {', counter, length);
-    }
+  } else if (type instanceof Parser) {
+    ctx.pushCode("var {0} = {};", item);
 
-    if (typeof type === 'string') {
-        if (!aliasRegistry[type]) {
-            ctx.pushCode('var {0} = buffer.read{1}(offset);', item, NAME_MAP[type]);
-            ctx.pushCode('offset += {0};', PRIMITIVE_TYPES[NAME_MAP[type]]);
-        } else {
-            var tempVar = ctx.generateTmpVariable();
-            ctx.pushCode('var {0} = {1}(offset);', tempVar, FUNCTION_PREFIX + type);
-            ctx.pushCode('var {0} = {1}.result; offset = {1}.offset;', item, tempVar);
-            if (type !== this.alias) ctx.addReference(type);
-        }
-    } else if (type instanceof Parser) {
-        ctx.pushCode('var {0} = {};', item);
+    ctx.pushScope(item);
+    type.generate(ctx);
+    ctx.popScope();
+  }
 
-        ctx.pushScope(item);
-        type.generate(ctx);
-        ctx.popScope();
-    }
+  if (isHash) {
+    ctx.pushCode("{0}[{2}.{1}] = {2};", lhs, key, item);
+  } else {
+    ctx.pushCode("{0}.push({1});", lhs, item);
+  }
 
-    if (isHash) {
-        ctx.pushCode('{0}[{2}.{1}] = {2};', lhs, key, item);
-    } else {
-        ctx.pushCode('{0}.push({1});', lhs, item);
-    }
+  ctx.pushCode("}");
 
-    ctx.pushCode('}');
-
-    if (typeof this.options.readUntil === 'function') {
-        ctx.pushCode(' while (!({0}).call(this, {1}, buffer.slice(offset)));', this.options.readUntil, item);
-    }
+  if (typeof this.options.readUntil === "function") {
+    ctx.pushCode(
+      " while (!({0}).call(this, {1}, buffer.slice(offset)));",
+      this.options.readUntil,
+      item
+    );
+  }
 };
 
 Parser.prototype.generateChoiceCase = function(ctx, varName, type) {
-    if (typeof type === 'string') {
-        if (!aliasRegistry[type]) {
-            ctx.pushCode('{0} = buffer.read{1}(offset);', ctx.generateVariable(this.varName), NAME_MAP[type]);
-            ctx.pushCode('offset += {0};', PRIMITIVE_TYPES[NAME_MAP[type]]);
-        } else {
-            var tempVar = ctx.generateTmpVariable();
-            ctx.pushCode('var {0} = {1}(offset);', tempVar, FUNCTION_PREFIX + type);
-            ctx.pushCode('{0} = {1}.result; offset = {1}.offset;', ctx.generateVariable(this.varName), tempVar);
-            if (type !== this.alias) ctx.addReference(type);
-        }
-    } else if (type instanceof Parser) {
-        ctx.pushPath(varName);
-        type.generate(ctx);
-        ctx.popPath(varName);
+  if (typeof type === "string") {
+    if (!aliasRegistry[type]) {
+      ctx.pushCode(
+        "{0} = buffer.read{1}(offset);",
+        ctx.generateVariable(this.varName),
+        NAME_MAP[type]
+      );
+      ctx.pushCode("offset += {0};", PRIMITIVE_TYPES[NAME_MAP[type]]);
+    } else {
+      var tempVar = ctx.generateTmpVariable();
+      ctx.pushCode("var {0} = {1}(offset);", tempVar, FUNCTION_PREFIX + type);
+      ctx.pushCode(
+        "{0} = {1}.result; offset = {1}.offset;",
+        ctx.generateVariable(this.varName),
+        tempVar
+      );
+      if (type !== this.alias) ctx.addReference(type);
     }
+  } else if (type instanceof Parser) {
+    ctx.pushPath(varName);
+    type.generate(ctx);
+    ctx.popPath(varName);
+  }
 };
 
 Parser.prototype.generateChoice = function(ctx) {
-    var tag = ctx.generateOption(this.options.tag);
-    if (this.varName)
-    {
-        ctx.pushCode('{0} = {};', ctx.generateVariable(this.varName));
-    }
-    ctx.pushCode('switch({0}) {', tag);
-    Object.keys(this.options.choices).forEach(function(tag) {
-        var type = this.options.choices[tag];
+  var tag = ctx.generateOption(this.options.tag);
+  if (this.varName) {
+    ctx.pushCode("{0} = {};", ctx.generateVariable(this.varName));
+  }
+  ctx.pushCode("switch({0}) {", tag);
+  Object.keys(this.options.choices).forEach(function(tag) {
+    var type = this.options.choices[tag];
 
-        ctx.pushCode('case {0}:', tag);
-        this.generateChoiceCase(ctx, this.varName, type);
-        ctx.pushCode('break;');
-    }, this);
-    ctx.pushCode('default:');
-    if (this.options.defaultChoice) {
-        this.generateChoiceCase(ctx, this.varName, this.options.defaultChoice);
-    } else {
-        ctx.generateError('"Met undefined tag value " + {0} + " at choice"', tag);
-    }
-    ctx.pushCode('}');
+    ctx.pushCode("case {0}:", tag);
+    this.generateChoiceCase(ctx, this.varName, type);
+    ctx.pushCode("break;");
+  }, this);
+  ctx.pushCode("default:");
+  if (this.options.defaultChoice) {
+    this.generateChoiceCase(ctx, this.varName, this.options.defaultChoice);
+  } else {
+    ctx.generateError('"Met undefined tag value " + {0} + " at choice"', tag);
+  }
+  ctx.pushCode("}");
 };
 
 Parser.prototype.generateNest = function(ctx) {
-    var nestVar = ctx.generateVariable(this.varName);
-    if (this.options.type instanceof Parser) {
-        ctx.pushCode('{0} = {};', nestVar);
-        ctx.pushPath(this.varName);
-        this.options.type.generate(ctx);
-        ctx.popPath(this.varName);
-    } else if (aliasRegistry[this.options.type]) {
-        var tempVar = ctx.generateTmpVariable();
-        ctx.pushCode('var {0} = {1}(offset);', tempVar, FUNCTION_PREFIX + this.options.type);
-        ctx.pushCode('{0} = {1}.result; offset = {1}.offset;', nestVar, tempVar);
-        if (this.options.type !== this.alias) ctx.addReference(this.options.type);
+  var nestVar = ctx.generateVariable(this.varName);
+
+  if (this.options.type instanceof Parser) {
+    if (this.varName) {
+      ctx.pushCode("{0} = {};", nestVar);
     }
+    ctx.pushPath(this.varName);
+    this.options.type.generate(ctx);
+    ctx.popPath(this.varName);
+  } else if (aliasRegistry[this.options.type]) {
+    var tempVar = ctx.generateTmpVariable();
+    ctx.pushCode(
+      "var {0} = {1}(offset);",
+      tempVar,
+      FUNCTION_PREFIX + this.options.type
+    );
+    ctx.pushCode("{0} = {1}.result; offset = {1}.offset;", nestVar, tempVar);
+    if (this.options.type !== this.alias) ctx.addReference(this.options.type);
+  }
 };
 
 Parser.prototype.generateFormatter = function(ctx, varName, formatter) {
-    if (typeof formatter === 'function') {
-        ctx.pushCode('{0} = ({1}).call(this, {0});', varName, formatter);
-    }
+  if (typeof formatter === "function") {
+    ctx.pushCode("{0} = ({1}).call(this, {0});", varName, formatter);
+  }
 };
 
 Parser.prototype.isInteger = function() {
-    return !!this.type.match(/U?Int[8|16|32][BE|LE]?|Bit\d+/);
+  return !!this.type.match(/U?Int[8|16|32][BE|LE]?|Bit\d+/);
 };
 
 //========================================================================================
@@ -782,7 +865,7 @@ Parser.prototype.isInteger = function() {
 
 exports.Parser = Parser;
 
-},{"./context":3}],3:[function(require,module,exports){
+},{"./context":3,"vm":42}],3:[function(require,module,exports){
 //========================================================================================
 // class Context
 //========================================================================================
@@ -792,12 +875,12 @@ exports.Parser = Parser;
 //----------------------------------------------------------------------------------------
 
 var Context = function() {
-    this.code = '';
-    this.scopes = [['vars']];
-    this.isAsync = false;
-    this.bitFields = [];
-    this.tmpVariableCount = 0;
-    this.references = {};
+  this.code = "";
+  this.scopes = [["vars"]];
+  this.isAsync = false;
+  this.bitFields = [];
+  this.tmpVariableCount = 0;
+  this.references = {};
 };
 
 //----------------------------------------------------------------------------------------
@@ -805,90 +888,94 @@ var Context = function() {
 //----------------------------------------------------------------------------------------
 
 Context.prototype.generateVariable = function(name) {
-    var arr = [];
+  var arr = [];
 
-    Array.prototype.push.apply(arr, this.scopes[this.scopes.length - 1]);
-    if (name) {
-        arr.push(name);
-    }
+  Array.prototype.push.apply(arr, this.scopes[this.scopes.length - 1]);
+  if (name) {
+    arr.push(name);
+  }
 
-    return arr.join('.');
+  return arr.join(".");
 };
 
 Context.prototype.generateOption = function(val) {
-    switch(typeof val) {
-        case 'number':
-            return val.toString();
-        case 'string':
-            return this.generateVariable(val);
-        case 'function':
-            return '(' + val + ').call(' + this.generateVariable() + ', vars)';
-    }
+  switch (typeof val) {
+    case "number":
+      return val.toString();
+    case "string":
+      return this.generateVariable(val);
+    case "function":
+      return "(" + val + ").call(" + this.generateVariable() + ", vars)";
+  }
 };
 
 Context.prototype.generateError = function() {
-    var args = Array.prototype.slice.call(arguments);
-    var err = Context.interpolate.apply(this, args);
+  var args = Array.prototype.slice.call(arguments);
+  var err = Context.interpolate.apply(this, args);
 
-    if (this.isAsync) {
-        this.pushCode('return process.nextTick(function() { callback(new Error(' + err + '), vars); });');
-    } else {
-        this.pushCode('throw new Error(' + err + ');');
-    }
+  if (this.isAsync) {
+    this.pushCode(
+      "return process.nextTick(function() { callback(new Error(" +
+        err +
+        "), vars); });"
+    );
+  } else {
+    this.pushCode("throw new Error(" + err + ");");
+  }
 };
 
 Context.prototype.generateTmpVariable = function() {
-    return '$tmp' + (this.tmpVariableCount++);
+  return "$tmp" + this.tmpVariableCount++;
 };
 
 Context.prototype.pushCode = function() {
-    var args = Array.prototype.slice.call(arguments);
+  var args = Array.prototype.slice.call(arguments);
 
-    this.code += Context.interpolate.apply(this, args) + '\n';
+  this.code += Context.interpolate.apply(this, args) + "\n";
 };
 
 Context.prototype.pushPath = function(name) {
-    if (name)
-    {
-    	this.scopes[this.scopes.length - 1].push(name);
-    }
+  if (name) {
+    this.scopes[this.scopes.length - 1].push(name);
+  }
 };
 
 Context.prototype.popPath = function(name) {
-    if (name)
-   { 
-   	this.scopes[this.scopes.length - 1].pop();
-   }
+  if (name) {
+    this.scopes[this.scopes.length - 1].pop();
+  }
 };
 
 Context.prototype.pushScope = function(name) {
-    this.scopes.push([name]);
+  this.scopes.push([name]);
 };
 
 Context.prototype.popScope = function() {
-    this.scopes.pop();
+  this.scopes.pop();
 };
 
 Context.prototype.addReference = function(alias) {
-    if (this.references[alias]) return;
-    this.references[alias] = { resolved: false, requested: false };
+  if (this.references[alias]) return;
+  this.references[alias] = { resolved: false, requested: false };
 };
 
 Context.prototype.markResolved = function(alias) {
-    this.references[alias].resolved = true;
+  this.references[alias].resolved = true;
 };
 
 Context.prototype.markRequested = function(aliasList) {
-    aliasList.forEach(function(alias) {
-        this.references[alias].requested = true;
-    }.bind(this));
+  aliasList.forEach(
+    function(alias) {
+      this.references[alias].requested = true;
+    }.bind(this)
+  );
 };
 
 Context.prototype.getUnresolvedReferences = function() {
-    var references = this.references;
-    return Object.keys(this.references).filter(function(alias) {
-        return !references[alias].resolved && !references[alias].requested;
-    });
+  var references = this.references;
+  return Object.keys(this.references).filter(function(alias) {
+    return !references[alias].resolved && !references[alias].requested;
+  });
 };
 
 //----------------------------------------------------------------------------------------
@@ -896,18 +983,18 @@ Context.prototype.getUnresolvedReferences = function() {
 //----------------------------------------------------------------------------------------
 
 Context.interpolate = function(s) {
-    var re = /{\d+}/g;
-    var matches = s.match(re);
-    var params = Array.prototype.slice.call(arguments, 1);
+  var re = /{\d+}/g;
+  var matches = s.match(re);
+  var params = Array.prototype.slice.call(arguments, 1);
 
-    if (matches) {
-        matches.forEach(function(match) {
-            var index = parseInt(match.substr(1, match.length - 2), 10);
-            s = s.replace(match, params[index].toString());
-        });
-    }
+  if (matches) {
+    matches.forEach(function(match) {
+      var index = parseInt(match.substr(1, match.length - 2), 10);
+      s = s.replace(match, params[index].toString());
+    });
+  }
 
-    return s;
+  return s;
 };
 
 exports.Context = Context;
@@ -2809,7 +2896,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":13}],9:[function(require,module,exports){
+},{"../../is-buffer/index.js":14}],9:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -3146,7 +3233,7 @@ function validateParams (params) {
   return params
 }
 
-},{"http":32,"url":38}],11:[function(require,module,exports){
+},{"http":33,"url":39}],11:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -3233,6 +3320,17 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 }
 
 },{}],12:[function(require,module,exports){
+
+var indexOf = [].indexOf;
+
+module.exports = function(arr, obj){
+  if (indexOf) return arr.indexOf(obj);
+  for (var i = 0; i < arr.length; ++i) {
+    if (arr[i] === obj) return i;
+  }
+  return -1;
+};
+},{}],13:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -3257,7 +3355,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -3280,14 +3378,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -3515,7 +3613,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":17}],16:[function(require,module,exports){
+},{"_process":18}],17:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -3562,7 +3660,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":17}],17:[function(require,module,exports){
+},{"_process":18}],18:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -3748,7 +3846,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -4285,7 +4383,7 @@ process.umask = function() { return 0; };
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4371,7 +4469,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4458,13 +4556,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":19,"./encode":20}],22:[function(require,module,exports){
+},{"./decode":20,"./encode":21}],23:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4589,7 +4687,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":24,"./_stream_writable":26,"core-util-is":8,"inherits":12,"process-nextick-args":16}],23:[function(require,module,exports){
+},{"./_stream_readable":25,"./_stream_writable":27,"core-util-is":8,"inherits":13,"process-nextick-args":17}],24:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4637,7 +4735,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":25,"core-util-is":8,"inherits":12}],24:[function(require,module,exports){
+},{"./_stream_transform":26,"core-util-is":8,"inherits":13}],25:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5647,7 +5745,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":22,"./internal/streams/BufferList":27,"./internal/streams/destroy":28,"./internal/streams/stream":29,"_process":17,"core-util-is":8,"events":9,"inherits":12,"isarray":14,"process-nextick-args":16,"safe-buffer":31,"string_decoder/":36,"util":4}],25:[function(require,module,exports){
+},{"./_stream_duplex":23,"./internal/streams/BufferList":28,"./internal/streams/destroy":29,"./internal/streams/stream":30,"_process":18,"core-util-is":8,"events":9,"inherits":13,"isarray":15,"process-nextick-args":17,"safe-buffer":32,"string_decoder/":37,"util":4}],26:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -5862,7 +5960,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":22,"core-util-is":8,"inherits":12}],26:[function(require,module,exports){
+},{"./_stream_duplex":23,"core-util-is":8,"inherits":13}],27:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -6529,7 +6627,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./_stream_duplex":22,"./internal/streams/destroy":28,"./internal/streams/stream":29,"_process":17,"core-util-is":8,"inherits":12,"process-nextick-args":16,"safe-buffer":31,"util-deprecate":40}],27:[function(require,module,exports){
+},{"./_stream_duplex":23,"./internal/streams/destroy":29,"./internal/streams/stream":30,"_process":18,"core-util-is":8,"inherits":13,"process-nextick-args":17,"safe-buffer":32,"util-deprecate":41}],28:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -6604,7 +6702,7 @@ module.exports = function () {
 
   return BufferList;
 }();
-},{"safe-buffer":31}],28:[function(require,module,exports){
+},{"safe-buffer":32}],29:[function(require,module,exports){
 'use strict';
 
 /*<replacement>*/
@@ -6677,10 +6775,10 @@ module.exports = {
   destroy: destroy,
   undestroy: undestroy
 };
-},{"process-nextick-args":16}],29:[function(require,module,exports){
+},{"process-nextick-args":17}],30:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":9}],30:[function(require,module,exports){
+},{"events":9}],31:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -6689,7 +6787,7 @@ exports.Duplex = require('./lib/_stream_duplex.js');
 exports.Transform = require('./lib/_stream_transform.js');
 exports.PassThrough = require('./lib/_stream_passthrough.js');
 
-},{"./lib/_stream_duplex.js":22,"./lib/_stream_passthrough.js":23,"./lib/_stream_readable.js":24,"./lib/_stream_transform.js":25,"./lib/_stream_writable.js":26}],31:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":23,"./lib/_stream_passthrough.js":24,"./lib/_stream_readable.js":25,"./lib/_stream_transform.js":26,"./lib/_stream_writable.js":27}],32:[function(require,module,exports){
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
 var Buffer = buffer.Buffer
@@ -6753,7 +6851,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":6}],32:[function(require,module,exports){
+},{"buffer":6}],33:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var extend = require('xtend')
@@ -6835,7 +6933,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":34,"builtin-status-codes":7,"url":38,"xtend":41}],33:[function(require,module,exports){
+},{"./lib/request":35,"builtin-status-codes":7,"url":39,"xtend":43}],34:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -6908,7 +7006,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -7218,7 +7316,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":33,"./response":35,"_process":17,"buffer":6,"inherits":12,"readable-stream":30,"to-arraybuffer":37}],35:[function(require,module,exports){
+},{"./capability":34,"./response":36,"_process":18,"buffer":6,"inherits":13,"readable-stream":31,"to-arraybuffer":38}],36:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -7404,7 +7502,7 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":33,"_process":17,"buffer":6,"inherits":12,"readable-stream":30}],36:[function(require,module,exports){
+},{"./capability":34,"_process":18,"buffer":6,"inherits":13,"readable-stream":31}],37:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('safe-buffer').Buffer;
@@ -7677,7 +7775,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":31}],37:[function(require,module,exports){
+},{"safe-buffer":32}],38:[function(require,module,exports){
 var Buffer = require('buffer').Buffer
 
 module.exports = function (buf) {
@@ -7706,7 +7804,7 @@ module.exports = function (buf) {
 	}
 }
 
-},{"buffer":6}],38:[function(require,module,exports){
+},{"buffer":6}],39:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8440,7 +8538,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":39,"punycode":18,"querystring":21}],39:[function(require,module,exports){
+},{"./util":40,"punycode":19,"querystring":22}],40:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -8458,7 +8556,7 @@ module.exports = {
   }
 };
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8529,7 +8627,147 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
+var indexOf = require('indexof');
+
+var Object_keys = function (obj) {
+    if (Object.keys) return Object.keys(obj)
+    else {
+        var res = [];
+        for (var key in obj) res.push(key)
+        return res;
+    }
+};
+
+var forEach = function (xs, fn) {
+    if (xs.forEach) return xs.forEach(fn)
+    else for (var i = 0; i < xs.length; i++) {
+        fn(xs[i], i, xs);
+    }
+};
+
+var defineProp = (function() {
+    try {
+        Object.defineProperty({}, '_', {});
+        return function(obj, name, value) {
+            Object.defineProperty(obj, name, {
+                writable: true,
+                enumerable: false,
+                configurable: true,
+                value: value
+            })
+        };
+    } catch(e) {
+        return function(obj, name, value) {
+            obj[name] = value;
+        };
+    }
+}());
+
+var globals = ['Array', 'Boolean', 'Date', 'Error', 'EvalError', 'Function',
+'Infinity', 'JSON', 'Math', 'NaN', 'Number', 'Object', 'RangeError',
+'ReferenceError', 'RegExp', 'String', 'SyntaxError', 'TypeError', 'URIError',
+'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'escape',
+'eval', 'isFinite', 'isNaN', 'parseFloat', 'parseInt', 'undefined', 'unescape'];
+
+function Context() {}
+Context.prototype = {};
+
+var Script = exports.Script = function NodeScript (code) {
+    if (!(this instanceof Script)) return new Script(code);
+    this.code = code;
+};
+
+Script.prototype.runInContext = function (context) {
+    if (!(context instanceof Context)) {
+        throw new TypeError("needs a 'context' argument.");
+    }
+    
+    var iframe = document.createElement('iframe');
+    if (!iframe.style) iframe.style = {};
+    iframe.style.display = 'none';
+    
+    document.body.appendChild(iframe);
+    
+    var win = iframe.contentWindow;
+    var wEval = win.eval, wExecScript = win.execScript;
+
+    if (!wEval && wExecScript) {
+        // win.eval() magically appears when this is called in IE:
+        wExecScript.call(win, 'null');
+        wEval = win.eval;
+    }
+    
+    forEach(Object_keys(context), function (key) {
+        win[key] = context[key];
+    });
+    forEach(globals, function (key) {
+        if (context[key]) {
+            win[key] = context[key];
+        }
+    });
+    
+    var winKeys = Object_keys(win);
+
+    var res = wEval.call(win, this.code);
+    
+    forEach(Object_keys(win), function (key) {
+        // Avoid copying circular objects like `top` and `window` by only
+        // updating existing context properties or new properties in the `win`
+        // that was only introduced after the eval.
+        if (key in context || indexOf(winKeys, key) === -1) {
+            context[key] = win[key];
+        }
+    });
+
+    forEach(globals, function (key) {
+        if (!(key in context)) {
+            defineProp(context, key, win[key]);
+        }
+    });
+    
+    document.body.removeChild(iframe);
+    
+    return res;
+};
+
+Script.prototype.runInThisContext = function () {
+    return eval(this.code); // maybe...
+};
+
+Script.prototype.runInNewContext = function (context) {
+    var ctx = Script.createContext(context);
+    var res = this.runInContext(ctx);
+
+    forEach(Object_keys(ctx), function (key) {
+        context[key] = ctx[key];
+    });
+
+    return res;
+};
+
+forEach(Object_keys(Script.prototype), function (name) {
+    exports[name] = Script[name] = function (code) {
+        var s = Script(code);
+        return s[name].apply(s, [].slice.call(arguments, 1));
+    };
+});
+
+exports.createScript = function (code) {
+    return exports.Script(code);
+};
+
+exports.createContext = Script.createContext = function (context) {
+    var copy = new Context();
+    if(typeof context === 'object') {
+        forEach(Object_keys(context), function (key) {
+            copy[key] = context[key];
+        });
+    }
+    return copy;
+};
+
+},{"indexof":12}],43:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -8550,7 +8788,7 @@ function extend() {
     return target
 }
 
-},{}],42:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 const path = require('path');
 
 const tspck = require('./tspacket.js');
@@ -8906,7 +9144,7 @@ class chunklistGenerator {
 module.exports.chunklistGenerator = chunklistGenerator;
 module.exports.enChunklistType = hlsChunklist.enChunklistType;
 
-},{"./hls_chunk.js":44,"./hls_chunklist.js":45,"./hls_media_info.js":46,"./tspacket.js":47,"./tspacket_parser":48,"path":15}],43:[function(require,module,exports){
+},{"./hls_chunk.js":46,"./hls_chunklist.js":47,"./hls_media_info.js":48,"./tspacket.js":49,"./tspacket_parser":50,"path":16}],45:[function(require,module,exports){
 (function (Buffer){
 const http = require("http");
 const https = require("https");
@@ -9106,7 +9344,7 @@ document.getElementById('input-file-url-process').addEventListener('click', onUR
 checkFileAPI();
 
 }).call(this,require("buffer").Buffer)
-},{"./chunklistGenerator.js":42,"buffer":6,"http":32,"https":10}],44:[function(require,module,exports){
+},{"./chunklistGenerator.js":44,"buffer":6,"http":33,"https":10}],46:[function(require,module,exports){
 
 const fs = require('fs');
 const path = require('path');
@@ -9273,7 +9511,7 @@ class hls_chunk {
 //Export class
 module.exports.hls_chunk = hls_chunk;
 
-},{"./tspacket.js":47,"fs":5,"path":15}],45:[function(require,module,exports){
+},{"./tspacket.js":49,"fs":5,"path":16}],47:[function(require,module,exports){
 const path = require('path');
 
 "use strict";
@@ -9394,7 +9632,7 @@ class hls_chunklist {
 module.exports.hls_chunklist = hls_chunklist;
 module.exports.enChunklistType = enChunklistType;
 
-},{"path":15}],46:[function(require,module,exports){
+},{"path":16}],48:[function(require,module,exports){
 const fs = require('fs');
 
 "use strict";
@@ -9515,7 +9753,7 @@ class hls_media_info {
 //Export class
 module.exports.hls_media_info = hls_media_info;
 
-},{"fs":5}],47:[function(require,module,exports){
+},{"fs":5}],49:[function(require,module,exports){
 (function (Buffer){
 //Jordi Cenzano 2017
 
@@ -9801,7 +10039,7 @@ class tspacket {
 module.exports.tspacket = tspacket;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":6}],48:[function(require,module,exports){
+},{"buffer":6}],50:[function(require,module,exports){
 //Jordi Cenzano 2017
 const binparser = require('binary-parser').Parser;
 
@@ -9817,7 +10055,7 @@ class tspacketParser {
         //Utils
         this.stop_parse = new binparser();
 
-        this.skip_0 = new binparser().endianess('big').skip(function () {
+        this.skip = new binparser().endianess('big').skip(function () {
             return 0;
         });
 
@@ -9864,7 +10102,7 @@ class tspacketParser {
             tag: 'adaptationFieldControl',
             defaultChoice: this.stop_parse,
             choices: {
-                1: this.skip_0,
+                1: this.skip,
                 2: this.ts_packet_adaptation_field,
                 3: this.ts_packet_adaptation_field
             }
@@ -9872,7 +10110,7 @@ class tspacketParser {
             tag: 'payloadUnitStartIndicator',
             defaultChoice: this.stop_parse,
             choices: {
-                0: this.skip_0,
+                0: this.skip,
                 1: this.ts_packet_pointer
             }
         }).choice('payload', {
@@ -9904,7 +10142,7 @@ class tspacketParser {
             tag: 'adaptationFieldControl',
             defaultChoice: this.stop_parse,
             choices: {
-                1: this.skip_0,
+                1: this.skip,
                 2: this.ts_packet_adaptation_field,
                 3: this.ts_packet_adaptation_field
             }
@@ -9912,7 +10150,7 @@ class tspacketParser {
             tag: 'payloadUnitStartIndicator',
             defaultChoice: this.stop_parse,
             choices: {
-                0: this.skip_0,
+                0: this.skip,
                 1: this.ts_packet_pointer
             }
         }).choice('payload', {
@@ -9941,4 +10179,4 @@ class tspacketParser {
 //Export class
 module.exports.tspacketParser = tspacketParser;
 
-},{"binary-parser":2}]},{},[43]);
+},{"binary-parser":2}]},{},[45]);

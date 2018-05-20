@@ -13,7 +13,7 @@ class tspacketParser {
         //Utils
         this.stop_parse = new binparser();
 
-        this.skip_0 = new binparser()
+        this.skip = new binparser()
             .endianess('big')
             .skip(function() { return 0 });
 
@@ -114,7 +114,7 @@ class tspacketParser {
                 tag: 'adaptationFieldControl',
                 defaultChoice: this.stop_parse,
                 choices: {
-                    1: this.skip_0,
+                    1: this.skip,
                     2: this.ts_packet_adaptation_field,
                     3: this.ts_packet_adaptation_field
                 }
@@ -123,7 +123,7 @@ class tspacketParser {
                 tag: 'payloadUnitStartIndicator',
                 defaultChoice: this.stop_parse,
                 choices: {
-                    0: this.skip_0,
+                    0: this.skip,
                     1: this.ts_packet_pointer
                 }
             })
@@ -189,7 +189,7 @@ class tspacketParser {
                 tag: 'adaptationFieldControl',
                 defaultChoice: this.stop_parse,
                 choices: {
-                    1: this.skip_0,
+                    1: this.skip,
                     2: this.ts_packet_adaptation_field,
                     3: this.ts_packet_adaptation_field
                 }
@@ -198,7 +198,7 @@ class tspacketParser {
                 tag: 'payloadUnitStartIndicator',
                 defaultChoice: this.stop_parse,
                 choices: {
-                    0: this.skip_0,
+                    0: this.skip,
                     1: this.ts_packet_pointer
                 }
             })

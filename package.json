@@ -4,7 +4,7 @@
   "description": "Creates HLS chunklist inside the browser from a transport stream file",
   "main": "index.js",
   "dependencies": {
-    "binary-parser": "^1.3.0"
+    "binary-parser": "^1.3.2"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",
