@@ -3,3 +3,4 @@ node_modules/
 !.gitignore
 /test/*.m3u8
 /test/results/
+package-lock.json
