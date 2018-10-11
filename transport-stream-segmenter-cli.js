@@ -10,8 +10,8 @@ const chkGenerator = require('./src/chunklistGenerator.js');
 
 // Check input arguments
 if (process.argv.length < 4) {
-    console.log("Use: ./transport-stream-segmenter-cli.js INPUT_TS OUTPUT_CHUNKLIST [TARGET_DUR_S]");
-    console.log("Example: ./transport-stream-segmenter-cli.js /tmp/input.ts /tmp/out.m3u8 4");
+    console.log("Use: ./transport-stream-segmenter-cli.js INPUT_TS OUTPUT_CHUNKLIST [TARGET_DUR_S] [GENERATE_FILES]");
+    console.log("Example: ./transport-stream-segmenter-cli.js /tmp/input.ts /tmp/out.m3u8 4 1");
     process.exit(1);
 }
 
@@ -22,10 +22,17 @@ let target_dur_s = 4; //Default
 if (process.argv.length > 4)
     target_dur_s = Number.parseInt(process.argv[4], 10);
 
+let is_generating_files = false; //Default
+let chunk_base_filename = input_ts_file;
+if ((process.argv.length > 5) && (Number.parseInt(process.argv[5], 10) > 0)) {
+    is_generating_files = true;
+    chunk_base_filename = 'chunk';
+}
+
 const base_path = path.dirname(out_chunklist_file);
 
 //Instantiate class
-let segmenter = new chkGenerator.chunklistGenerator(false, base_path, input_ts_file, target_dur_s);
+let segmenter = new chkGenerator.chunklistGenerator(is_generating_files, base_path, chunk_base_filename, target_dur_s);
 
 //Create file reader
 const readStream = fs.createReadStream(input_ts_file);
